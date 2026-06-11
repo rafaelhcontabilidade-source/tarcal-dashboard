@@ -1901,7 +1901,7 @@ function renderOrcado() {
     <div class="kpi navy"><div class="kpi-lbl">Total a Pagar</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${nReg} títulos | ${fmtMesLabel(mesMin)}–${fmtMesLabel(mesMax)}</div></div>
     <div class="kpi red"><div class="kpi-lbl">Vence em ≤ 30 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v30)}</div><div class="kpi-sub">até ${d30.toLocaleDateString('pt-BR')}</div></div>
     <div class="kpi orange"><div class="kpi-lbl">Vence em 31–60 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v60)}</div><div class="kpi-sub">31 a 60 dias</div></div>
-    <div class="kpi purple"><div class="kpi-lbl">Prazo Médio Pagamento</div><div class="kpi-val">${pmpDays!=null?pmpDays+' dias':'—'}</div><div class="kpi-sub">Ponderado pelo valor${pmpSimples!=null?' · Simples: '+pmpSimples+'d':''}</div></div>
+    <div class="kpi purple"><div class="kpi-lbl">Prazo Médio Pagamento</div><div class="kpi-val">${pmpSimples!=null?pmpSimples+' dias':'—'}</div><div class="kpi-sub">emissão → vencimento</div></div>
     <div class="kpi blue"><div class="kpi-lbl">Maior Categoria</div><div class="kpi-val" style="font-size:1.1rem">${topCat?topCat[0].split(' ')[0]:'—'}</div><div class="kpi-sub">${topCat?fmtK(topCat[1]):''}</div></div>
     <div class="kpi teal"><div class="kpi-lbl">Filtro Atual</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos selecionados</div></div>
   `;
