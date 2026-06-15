@@ -1,11 +1,92 @@
 // gerar_apagar.js — Cria abas DePara, APagar e FC_Direto no Excel
-// Node.js + exceljs
-// Extraído do PDF "a pagar.pdf" (440 registros, R$ 2.960.711,85)
+// Node.js + exceljs + pdfreader
+// Lê automaticamente o PDF "a pagar.pdf" a cada execução
 
 const ExcelJS = require('./node_modules/exceljs');
+const {PdfReader} = require('./node_modules/pdfreader');
 const path = require('path');
 
 const XLSX_PATH = path.join(__dirname, 'WP_Demonstrações_Financeiras.xlsx');
+const PDF_PATH  = path.join(__dirname, 'a pagar.pdf');
+
+// ── Parser de PDF ─────────────────────────────────────────────────────────────
+const DATE_RE  = /^\d{2}\/\d{2}\/\d{4}$/;
+const CODE_RE  = /^0{1,2}\d{4,5}$/;
+const VALUE_RE = /^[\d.]+,\d{2}$/;
+
+function parsePDF(pdfPath) {
+  return new Promise((resolve, reject) => {
+    const pages = [];
+    let curPage = null;
+
+    new PdfReader().parseFileItems(pdfPath, (err, item) => {
+      if (err) { reject(err); return; }
+      if (!item) {
+        // fim — processa todas as páginas
+        const records = [];
+        for (const page of pages) {
+          const rowMap = {};
+          for (const it of page) {
+            const yKey = Math.round(it.y * 10);
+            if (!rowMap[yKey]) rowMap[yKey] = [];
+            rowMap[yKey].push(it);
+          }
+          for (const yKey of Object.keys(rowMap).sort((a,b)=>a-b)) {
+            const row = rowMap[yKey].sort((a,b) => a.x - b.x);
+            const texts = row.map(r => r.text.trim()).filter(Boolean);
+            parseRow(texts).forEach(r => records.push(r));
+          }
+        }
+        // remove duplicatas (mesmo doc+cod+valor)
+        const seen = new Set();
+        const uniq = records.filter(r => {
+          const k = `${r[0]}|${r[3]}|${r[6]}`;
+          if (seen.has(k)) return false;
+          seen.add(k); return true;
+        });
+        resolve(uniq);
+        return;
+      }
+      if (item.page) { curPage = []; pages.push(curPage); }
+      if (item.text && curPage) curPage.push({x: item.x, y: item.y, text: item.text});
+    });
+  });
+}
+
+function parseRow(texts) {
+  const dates  = texts.filter(t => DATE_RE.test(t));
+  const codes  = texts.filter(t => CODE_RE.test(t));
+  const values = texts.filter(t => VALUE_RE.test(t));
+
+  if (!dates.length || !codes.length || !values.length) return [];
+
+  const n = Math.floor(Math.min(dates.length / 2, codes.length, values.length));
+  if (n < 1) return [];
+
+  const firstDateIdx = texts.findIndex(t => DATE_RE.test(t));
+  const docCandidates = texts.slice(0, firstDateIdx)
+    .filter(t => !DATE_RE.test(t) && !CODE_RE.test(t) && !VALUE_RE.test(t));
+
+  const half = Math.round(dates.length / 2);
+  const emissaoDates = dates.slice(0, half);
+  const vencDates    = dates.slice(half);
+
+  const records = [];
+  for (let i = 0; i < n; i++) {
+    if (!vencDates[i] || !codes[i] || !values[i]) continue;
+    // [doc, emis, venc, cod, nome(vazio), hist(vazio), valor]
+    records.push([
+      docCandidates[i] || '',
+      emissaoDates[i]  || '',
+      vencDates[i],
+      parseInt(codes[i]),
+      '',   // nome preenchido depois pelo DePara
+      '',   // historico não extraído
+      parseFloat(String(values[i]).replace(/\./g,'').replace(',','.'))
+    ]);
+  }
+  return records;
+}
 
 // ── DE-PARA: cod → {nome, categoria} ─────────────────────────────────────────
 const DEPARA = [
@@ -92,9 +173,9 @@ function getGrupoMae(cat) {
     : 'Saídas Operacionais';
 }
 
-// ── DADOS DO PDF (440 registros) ─────────────────────────────────────────────
-// Formato: [Documento, Emissao, Vencimento, Cod, NomeForn, Historico]
-const DADOS = [
+// ── DADOS DO PDF (legado — substituído por leitura dinâmica no main()) ────────
+// Mantido apenas como fallback. O array abaixo será sobrescrito em runtime.
+const DADOS_LEGADO = [
   // == 11/06/2026 ==
   ['381000','14/05/2026','11/06/2026',3478,'VOTORANTIM CIMENTOS S/A','CIMENTO GRANEL',26066.82],
   ['259553','12/05/2026','11/06/2026',3366,'VEDACIL COMPONENTES HIDRAULICOS LT','RETENTOR',430.00],
@@ -577,10 +658,6 @@ const CATS_OPERACIONAL = [
   'Outros Operacionais',
 ];
 
-// Meses (YYYY-MM)
-const MESES = ['2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12','2027-01'];
-const MESES_LABEL = ['Jun/26','Jul/26','Ago/26','Set/26','Out/26','Nov/26','Dez/26','Jan/27'];
-
 function parseDate(str) {
   // DD/MM/YYYY → Date
   const [d,m,y] = str.split('/');
@@ -592,7 +669,27 @@ function mesVenc(venc) {
   return `${y}-${m.padStart(2,'0')}`;
 }
 
+function mesLabel(yyyyMM) {
+  const [y, m] = yyyyMM.split('-');
+  const mNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return `${mNames[parseInt(m)-1]}/${y.slice(2)}`;
+}
+
 async function main() {
+  // ── Lê PDF ──────────────────────────────────────────────────────────────────
+  console.log(`📄 Lendo PDF: ${PDF_PATH}`);
+  const DADOS = await parsePDF(PDF_PATH);
+
+  // Preenche nome via DePara (ou fallback)
+  const DEPARA_NOME = {};
+  DEPARA.forEach(([cod, forn]) => { DEPARA_NOME[cod] = forn; });
+  DADOS.forEach(r => { r[4] = DEPARA_NOME[r[3]] || ('FORNECEDOR ' + r[3]); });
+
+  // Meses dinâmicos a partir dos vencimentos reais
+  const mesesSet = new Set(DADOS.map(r => mesVenc(r[2])));
+  const MESES = Array.from(mesesSet).sort();
+  const MESES_LABEL = MESES.map(mesLabel);
+
   console.log(`📊 Lendo Excel: ${XLSX_PATH}`);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(XLSX_PATH);
@@ -620,13 +717,13 @@ async function main() {
   DEPARA.forEach(([cod, forn, grupo]) => {
     wsDep.addRow({ cod, forn, grupo });
   });
-  // Add extra rows for unknown codes found in DADOS
+  // Add extra rows for unknown codes found in DADOS (novos fornecedores)
   const knowCods = new Set(DEPARA.map(d=>d[0]));
   const extraCods = new Set();
   DADOS.forEach(r => { if (!knowCods.has(r[3])) extraCods.add(r[3]); });
   extraCods.forEach(cod => {
-    const found = DADOS.find(r=>r[3]===cod);
-    wsDep.addRow({ cod, forn: found[4], grupo: 'Outros Operacionais' });
+    const nome = DEPARA_NOME[cod] || ('FORNECEDOR ' + cod);
+    wsDep.addRow({ cod, forn: nome, grupo: 'Outros Operacionais' });
   });
   console.log(`✅ DePara: ${wsDep.rowCount-1} fornecedores`);
 
@@ -663,16 +760,11 @@ async function main() {
     totalVal += valor;
 
     const row = wsAP.addRow({
-      doc, emis, venc, mes: mv,
+      doc: String(doc), emis, venc, mes: mv,
       cod, nome, hist, valor,
       cat, tipo: 'Previsto', grupo
     });
-    // Format dates
-    row.getCell('emis').numFmt = 'DD/MM/YYYY';
-    row.getCell('venc').numFmt = 'DD/MM/YYYY';
-    // Format value
     row.getCell('valor').numFmt = '#,##0.00';
-    // Alternate row color
     if (rowNum % 2 === 0) {
       row.eachCell(cell => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4D6' } };
@@ -699,7 +791,7 @@ async function main() {
 
   // Compute pivot
   const pivot = {}; // cat → mes → total
-  DADOS.forEach(([doc, emis, venc, cod, nome, hist, valor]) => {
+  DADOS.forEach(([, , venc, cod, , , valor]) => {
     const cat = getCategoria(cod);
     const mv = mesVenc(venc);
     if (!pivot[cat]) pivot[cat] = {};
