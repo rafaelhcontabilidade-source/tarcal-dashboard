@@ -186,6 +186,14 @@ table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
 .btn-cfg{display:inline-flex;align-items:center;gap:.375rem;padding:.35rem .875rem;border:1px solid var(--border);border-radius:var(--radius);background:#fff;font-size:.75rem;cursor:pointer;color:var(--muted);transition:all .15s}
 .btn-cfg:hover{border-color:var(--blue);color:var(--blue)}
 .url-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:.25rem;vertical-align:middle}
+.orc-subnav{display:flex;gap:.5rem;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:.75rem}
+.orc-subbtn{padding:.5rem 1.125rem;border:1px solid var(--border);border-radius:999px;background:#fff;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.orc-subbtn:hover{border-color:var(--blue);color:var(--blue)}
+.orc-subbtn.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.orc-subbtn.active.g{background:var(--green);border-color:var(--green)}
+.orc-subbtn.active.n{background:var(--navy);border-color:var(--navy)}
+.orc-subpage{display:none}
+.orc-subpage.active{display:block}
 </style>
 </head>
 <body>
@@ -392,51 +400,99 @@ table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
 
       <!-- ═══════════════════════════════════════════════════════ FLUXO ORÇADO -->
       <div id="tab-orcado" class="page">
-        <!-- KPIs -->
-        <div class="kpi-grid" id="orc-kpis"></div>
-
-        <!-- Filtros -->
-        <div class="card" style="margin-bottom:.875rem;padding:.75rem 1rem">
-          <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
-            <span class="fl">Período</span>
-            <select class="fsel" id="orc-mes-sel" onchange="renderOrcado()" style="min-width:120px">
-              <option value="">Todos os meses</option>
-            </select>
-            <span class="fl">Categoria</span>
-            <select class="fsel" id="orc-cat-sel" onchange="renderOrcado()" style="min-width:180px">
-              <option value="">Todas</option>
-            </select>
-            <span class="fl">Tipo</span>
-            <select class="fsel" id="orc-tipo-sel" onchange="renderOrcado()">
-              <option value="">Todos</option>
-              <option value="Previsto">Previsto</option>
-              <option value="Realizado">Realizado</option>
-            </select>
-          </div>
+        <div class="orc-subnav">
+          <button class="orc-subbtn g" id="orc-subbtn-receber" onclick="goOrcSub('receber')">📥 A Receber</button>
+          <button class="orc-subbtn active" id="orc-subbtn-pagar" onclick="goOrcSub('pagar')">📤 A Pagar</button>
+          <button class="orc-subbtn n" id="orc-subbtn-consolidado" onclick="goOrcSub('consolidado')">⚖️ Consolidado</button>
         </div>
 
-        <!-- Gráficos -->
-        <div class="g2" style="margin-bottom:.875rem">
+        <!-- ─── SUB-ABA: A RECEBER ─────────────────────────────────────── -->
+        <div id="orc-sub-receber" class="orc-subpage">
+          <div class="kpi-grid" id="rec-kpis"></div>
+          <div class="card" style="margin-bottom:.875rem;padding:.75rem 1rem">
+            <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+              <span class="fl">Período</span>
+              <select class="fsel" id="rec-mes-sel" onchange="renderRecebido()" style="min-width:120px">
+                <option value="">Todos os meses</option>
+              </select>
+              <span class="fl">Produto</span>
+              <select class="fsel" id="rec-cat-sel" onchange="renderRecebido()" style="min-width:180px">
+                <option value="">Todos</option>
+              </select>
+            </div>
+          </div>
+          <div class="g2" style="margin-bottom:.875rem">
+            <div class="card">
+              <div class="ch"><span class="ct">Entradas por Mês e Produto (R$)</span></div>
+              <div class="chart-wrap h300"><canvas id="c-rec-mensal"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="ch"><span class="ct" id="rec-donut-title">Composição do Período</span></div>
+              <div class="chart-wrap h300"><canvas id="c-rec-donut"></canvas></div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:.875rem">
+            <div class="ch"><span class="ct">Fluxo de Caixa de Recebimento Orçado</span><span id="rec-total-badge" class="badge badge-blue"></span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-fc-recebimento"></div></div>
+          </div>
           <div class="card">
-            <div class="ch"><span class="ct">Saídas por Mês e Categoria (R$)</span></div>
-            <div class="chart-wrap h300"><canvas id="c-orc-mensal"></canvas></div>
+            <div class="ch"><span class="ct">Títulos a Receber</span><span id="rec-count-badge" class="badge badge-blue"></span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-areceber"></div></div>
+          </div>
+        </div>
+
+        <!-- ─── SUB-ABA: A PAGAR ───────────────────────────────────────── -->
+        <div id="orc-sub-pagar" class="orc-subpage active">
+          <div class="kpi-grid" id="orc-kpis"></div>
+          <div class="card" style="margin-bottom:.875rem;padding:.75rem 1rem">
+            <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+              <span class="fl">Período</span>
+              <select class="fsel" id="orc-mes-sel" onchange="renderOrcado()" style="min-width:120px">
+                <option value="">Todos os meses</option>
+              </select>
+              <span class="fl">Categoria</span>
+              <select class="fsel" id="orc-cat-sel" onchange="renderOrcado()" style="min-width:180px">
+                <option value="">Todas</option>
+              </select>
+              <span class="fl">Tipo</span>
+              <select class="fsel" id="orc-tipo-sel" onchange="renderOrcado()">
+                <option value="">Todos</option>
+                <option value="Previsto">Previsto</option>
+                <option value="Realizado">Realizado</option>
+              </select>
+            </div>
+          </div>
+          <div class="g2" style="margin-bottom:.875rem">
+            <div class="card">
+              <div class="ch"><span class="ct">Saídas por Mês e Categoria (R$)</span></div>
+              <div class="chart-wrap h300"><canvas id="c-orc-mensal"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="ch"><span class="ct" id="orc-donut-title">Composição do Período</span></div>
+              <div class="chart-wrap h300"><canvas id="c-orc-donut"></canvas></div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:.875rem">
+            <div class="ch"><span class="ct">Fluxo de Caixa Direto Orçado</span><span id="orc-total-badge" class="badge badge-blue"></span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-fc-direto"></div></div>
           </div>
           <div class="card">
-            <div class="ch"><span class="ct" id="orc-donut-title">Composição do Período</span></div>
-            <div class="chart-wrap h300"><canvas id="c-orc-donut"></canvas></div>
+            <div class="ch"><span class="ct">Títulos a Pagar</span><span id="orc-count-badge" class="badge badge-blue"></span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-apagar"></div></div>
           </div>
         </div>
 
-        <!-- Tabela FC Direto -->
-        <div class="card" style="margin-bottom:.875rem">
-          <div class="ch"><span class="ct">Fluxo de Caixa Direto Orçado</span><span id="orc-total-badge" class="badge badge-blue"></span></div>
-          <div class="cb"><div class="tbl-wrap" id="tbl-fc-direto"></div></div>
-        </div>
-
-        <!-- Tabela Títulos -->
-        <div class="card">
-          <div class="ch"><span class="ct">Títulos a Pagar</span><span id="orc-count-badge" class="badge badge-blue"></span></div>
-          <div class="cb"><div class="tbl-wrap" id="tbl-apagar"></div></div>
+        <!-- ─── SUB-ABA: CONSOLIDADO ───────────────────────────────────── -->
+        <div id="orc-sub-consolidado" class="orc-subpage">
+          <div class="kpi-grid" id="cons-kpis"></div>
+          <div class="card" style="margin-bottom:.875rem">
+            <div class="ch"><span class="ct">Entradas × Saídas × Saldo Acumulado (R$)</span></div>
+            <div class="chart-wrap h300"><canvas id="c-cons-mensal"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">Fluxo de Caixa Consolidado Orçado</span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-fc-consolidado"></div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -857,7 +913,14 @@ function updatePeriodTag(){
 // ============================================================
 // NAVIGATION
 // ============================================================
-const TAB_TITLES={visao:'Visão Geral Executiva',dre:'DRE — Demonstrativo do Resultado',balanco:'Balanço Patrimonial',fluxo:'Fluxo de Caixa',indicadores:'Indicadores Financeiros',vendas:'Análise de Vendas',orcado:'Fluxo de Caixa Direto Orçado'};
+const TAB_TITLES={visao:'Visão Geral Executiva',dre:'DRE — Demonstrativo do Resultado',balanco:'Balanço Patrimonial',fluxo:'Fluxo de Caixa',indicadores:'Indicadores Financeiros',vendas:'Análise de Vendas',orcado:'Fluxo de Caixa Orçado — A Receber / A Pagar / Consolidado'};
+
+function goOrcSub(sub){
+  document.querySelectorAll('.orc-subpage').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.orc-subbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('orc-sub-'+sub).classList.add('active');
+  document.getElementById('orc-subbtn-'+sub).classList.add('active');
+}
 function goTab(tab){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -900,6 +963,8 @@ function renderAll(){
   renderIndicadores();
   renderVendas();
   renderOrcado();
+  renderRecebido();
+  renderConsolidado();
 }
 
 // ============================================================
@@ -1486,7 +1551,7 @@ function showUpload(){
 }
 
 function resetApp(){
-  gAM={};gPeriods=[];gVendas=[];gAPagar=[];curPeriod='';
+  gAM={};gPeriods=[];gVendas=[];gAPagar=[];gAReceber=[];gConsolidado=[];curPeriod='';
   Object.values(gCharts).forEach(c=>c.destroy());gCharts={};
   showUpload();
 }
@@ -1744,6 +1809,16 @@ async function processBuffer(buffer){
       gAPagar=parseAPagar(wb);
       buildOrcadoFilters();
     }
+    // AReceber (Fluxo Orçado)
+    if(wb.Sheets['AReceber']){
+      showLoading('Processando A Receber…');
+      gAReceber=parseAReceber(wb);
+      buildRecFilters();
+    }
+    // FC_Consolidado
+    if(wb.Sheets['FC_Consolidado']){
+      gConsolidado=parseConsolidado(wb);
+    }
     curPeriod=gPeriods[gPeriods.length-1];
     buildPeriodSelectors();
     updateCfgIndicator();
@@ -1760,6 +1835,8 @@ async function processBuffer(buffer){
 // FLUXO ORÇADO — parse APagar + render
 // ============================================================
 let gAPagar = [];
+let gAReceber = [];
+let gConsolidado = [];
 
 const ORC_CATS_OP = [
   'Matérias-Primas','Combustível','Fretes e Logística',
@@ -2029,6 +2106,302 @@ function renderOrcado() {
   tHtml += '</tbody></table>';
   document.getElementById('tbl-apagar').innerHTML = tHtml;
   document.getElementById('orc-count-badge').textContent = `${sorted.length} títulos`;
+}
+
+// ============================================================
+// FLUXO ORÇADO — A RECEBER (parse AReceber + render)
+// ============================================================
+const REC_PRODUTOS = ['Concreto','Areia','Argamassa','Cimento','Outros'];
+const REC_COLORS = {
+  'Concreto':'#059669','Areia':'#0891b2','Argamassa':'#2563eb',
+  'Cimento':'#7c3aed','Outros':'#94a3b8',
+};
+
+function parseAReceber(wb) {
+  const ws = wb.Sheets['AReceber'];
+  if (!ws) return [];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  return rows.map(r => ({
+    doc:      String(r['Documento']||''),
+    emissao:  String(r['Emissao']||''),
+    venc:     String(r['Vencimento']||''),
+    mesVenc:  String(r['MesVenc']||''),
+    cod:      r['Cliente_Cod']||'',
+    nome:     String(r['Cliente_Nome']||''),
+    valor:    parseFloat(r['Valor'])||0,
+    produto:  String(r['Produto']||'Outros'),
+    tipo:     String(r['Tipo']||'Previsto'),
+    grupoMae: String(r['GrupoMae']||'Entradas Operacionais'),
+  })).filter(r => r.valor > 0 && r.mesVenc && r.mesVenc !== 'MesVenc');
+}
+
+function buildRecFilters() {
+  if (!gAReceber.length) return;
+  const meses = [...new Set(gAReceber.map(r=>r.mesVenc))].sort();
+  const prods = [...new Set(gAReceber.map(r=>r.produto))].sort();
+  const mSel  = document.getElementById('rec-mes-sel');
+  const cSel  = document.getElementById('rec-cat-sel');
+  mSel.innerHTML = '<option value="">Todos os meses</option>';
+  meses.forEach(m => {
+    const [y,mo] = m.split('-');
+    const label = `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`;
+    mSel.innerHTML += `<option value="${m}">${label}</option>`;
+  });
+  cSel.innerHTML = '<option value="">Todos</option>';
+  prods.forEach(p => { cSel.innerHTML += `<option value="${p}">${p}</option>`; });
+}
+
+function filteredAReceber() {
+  const mes = document.getElementById('rec-mes-sel')?.value||'';
+  const cat = document.getElementById('rec-cat-sel')?.value||'';
+  return gAReceber.filter(r => (!mes || r.mesVenc===mes) && (!cat || r.produto===cat));
+}
+
+function renderRecebido() {
+  if (!gAReceber.length) {
+    document.getElementById('rec-kpis').innerHTML =
+      '<div class="empty" style="grid-column:1/-1">Aba AReceber não encontrada no Excel. Execute o script gerar_areceber.js e reimporte o arquivo.</div>';
+    return;
+  }
+
+  const filtered = filteredAReceber();
+  const today = new Date();
+  const d30 = new Date(today); d30.setDate(d30.getDate()+30);
+  const d60 = new Date(today); d60.setDate(d60.getDate()+60);
+
+  function parseVencDate(s) {
+    if (!s || s.length < 8) return null;
+    const [d,m,y] = s.split('/');
+    return new Date(+y, +m-1, +d);
+  }
+
+  const totalGeral = gAReceber.reduce((a,r)=>a+r.valor,0);
+  const v30 = gAReceber.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>=today&&dt<=d30; }).reduce((a,r)=>a+r.valor,0);
+  const v60 = gAReceber.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>d30&&dt<=d60; }).reduce((a,r)=>a+r.valor,0);
+  const totalFilt = filtered.reduce((a,r)=>a+r.valor,0);
+
+  const pmrSimples = (() => {
+    const pares = gAReceber.filter(r => {
+      const dtE = parseVencDate(r.emissao);
+      const dtV = parseVencDate(r.venc);
+      if (!dtE || !dtV) return false;
+      const dias = Math.round((dtV - dtE) / 86400000);
+      return dias >= 0 && dias <= 730;
+    }).map(r => {
+      const dtE = parseVencDate(r.emissao);
+      const dtV = parseVencDate(r.venc);
+      return Math.round((dtV - dtE) / 86400000);
+    });
+    return pares.length ? Math.round(pares.reduce((a,b)=>a+b,0)/pares.length) : null;
+  })();
+
+  const byProd = {};
+  gAReceber.forEach(r=>{ byProd[r.produto]=(byProd[r.produto]||0)+r.valor; });
+  const topProd = Object.entries(byProd).sort((a,b)=>b[1]-a[1])[0];
+
+  const fmtK = v => {
+    if (v>=1e6) return 'R$ '+(v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'M';
+    if (v>=1e3) return 'R$ '+(v/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'K';
+    return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
+
+  const nReg = gAReceber.length;
+  const mesMin = gAReceber.map(r=>r.mesVenc).sort()[0]||'';
+  const mesMax = gAReceber.map(r=>r.mesVenc).sort().reverse()[0]||'';
+  const fmtMesLabel = m => { if(!m)return'—'; const[y,mo]=m.split('-'); return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`; };
+
+  document.getElementById('rec-kpis').innerHTML = `
+    <div class="kpi green"><div class="kpi-lbl">Total a Receber</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${nReg} títulos | ${fmtMesLabel(mesMin)}–${fmtMesLabel(mesMax)}</div></div>
+    <div class="kpi teal"><div class="kpi-lbl">Recebe em ≤ 30 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v30)}</div><div class="kpi-sub">até ${d30.toLocaleDateString('pt-BR')}</div></div>
+    <div class="kpi blue"><div class="kpi-lbl">Recebe em 31–60 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v60)}</div><div class="kpi-sub">31 a 60 dias</div></div>
+    <div class="kpi purple"><div class="kpi-lbl">Prazo Médio Recebimento</div><div class="kpi-val">${pmrSimples!=null?pmrSimples+' dias':'—'}</div><div class="kpi-sub">emissão → vencimento</div></div>
+    <div class="kpi navy"><div class="kpi-lbl">Maior Produto</div><div class="kpi-val" style="font-size:1.1rem">${topProd?topProd[0]:'—'}</div><div class="kpi-sub">${topProd?fmtK(topProd[1]):''}</div></div>
+    <div class="kpi green"><div class="kpi-lbl">Filtro Atual</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos selecionados</div></div>
+  `;
+
+  const allMeses = [...new Set(gAReceber.map(r=>r.mesVenc))].sort();
+  const allProds = REC_PRODUTOS.filter(p => gAReceber.some(r=>r.produto===p));
+
+  const mesFilt = document.getElementById('rec-mes-sel')?.value;
+  const mesLabels = (mesFilt?[mesFilt]:allMeses).map(m => {
+    const [y,mo]=m.split('-');
+    return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`;
+  });
+  const mesKeys = mesFilt?[mesFilt]:allMeses;
+
+  function pivotVal(prod, mes) {
+    return filtered.filter(r=>r.produto===prod&&r.mesVenc===mes).reduce((a,r)=>a+r.valor,0);
+  }
+
+  if(gCharts['c-rec-mensal']){gCharts['c-rec-mensal'].destroy();delete gCharts['c-rec-mensal'];}
+  const ctxR1 = document.getElementById('c-rec-mensal').getContext('2d');
+  gCharts['c-rec-mensal'] = new Chart(ctxR1, {
+    type: 'bar',
+    data: {
+      labels: mesLabels,
+      datasets: allProds.map(prod => ({
+        label: prod,
+        data: mesKeys.map(m => pivotVal(prod, m)),
+        backgroundColor: REC_COLORS[prod]||'#94a3b8',
+        stack: 'stack',
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}` } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 } } },
+        y: { stacked: true, ticks: { font: { size: 10 }, callback: v => 'R$'+Math.round(v/1000)+'K' } }
+      }
+    }
+  });
+
+  if(gCharts['c-rec-donut']){gCharts['c-rec-donut'].destroy();delete gCharts['c-rec-donut'];}
+  const ctxR2 = document.getElementById('c-rec-donut').getContext('2d');
+  const donutData = allProds.map(prod => ({ prod, v: filtered.filter(r=>r.produto===prod).reduce((a,r)=>a+r.valor,0) })).filter(x=>x.v>0);
+  const mesFiltLabel = document.getElementById('rec-mes-sel')?.options[document.getElementById('rec-mes-sel').selectedIndex]?.text||'Todos os meses';
+  document.getElementById('rec-donut-title').textContent = `Composição — ${mesFiltLabel}`;
+  gCharts['c-rec-donut'] = new Chart(ctxR2, {
+    type: 'doughnut',
+    data: {
+      labels: donutData.map(d=>d.prod),
+      datasets: [{ data: donutData.map(d=>d.v), backgroundColor: donutData.map(d=>REC_COLORS[d.prod]||'#94a3b8'), borderWidth: 1 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => { const pct=(ctx.raw/totalFilt*100).toFixed(1); return `${ctx.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})} (${pct}%)`; } } }
+      }
+    }
+  });
+
+  // ── Tabela FC Recebimento ───────────────────────────────────────────────────
+  const fcMeses = mesFilt?[mesFilt]:allMeses;
+  const fcLabels = fcMeses.map(m=>{ const[y,mo]=m.split('-'); return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`; });
+
+  let fcHtml = `<table class="tbl"><thead><tr><th>Produto</th>${fcLabels.map(l=>`<th style="text-align:right">${l}</th>`).join('')}<th style="text-align:right">TOTAL</th></tr></thead><tbody>`;
+  function fcRow(label, prods, bold=false, bgColor='') {
+    const style = `style="${bgColor?`background:${bgColor};`:''}${bold?'font-weight:700;':''}"`;
+    let html = `<tr ${style}><td ${style}>${label}</td>`;
+    let rowTotal = 0;
+    fcMeses.forEach(m => {
+      const v = prods.reduce((a,p)=>a+filtered.filter(r=>r.produto===p&&r.mesVenc===m).reduce((s,r)=>s+r.valor,0),0);
+      rowTotal += v;
+      html += `<td style="text-align:right${bold?';font-weight:700':''}${bgColor?`;background:${bgColor}`:''}">${v>0?'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):''}</td>`;
+    });
+    html += `<td style="text-align:right${bold?';font-weight:700':''}${bgColor?`;background:${bgColor}`:''}">${rowTotal>0?'R$ '+rowTotal.toLocaleString('pt-BR',{minimumFractionDigits:2}):''}</td></tr>`;
+    return html;
+  }
+  allProds.forEach(prod => { fcHtml += fcRow(prod, [prod]); });
+  fcHtml += fcRow('═══ TOTAL ENTRADAS', allProds, true, '#375623');
+  fcHtml = fcHtml.replace('<tr style="background:#375623;font-weight:700;"><td style="background:#375623;font-weight:700;"', '<tr style="background:#375623"><td style="color:#fff;background:#375623;font-weight:700"').replace(/(<td style="text-align:right;font-weight:700;background:#375623)/g,'<td style="color:#fff;text-align:right;font-weight:700;background:#375623');
+  fcHtml += '</tbody></table>';
+  document.getElementById('tbl-fc-recebimento').innerHTML = fcHtml;
+
+  const grandTotal = allProds.reduce((a,p)=>a+filtered.filter(r=>r.produto===p).reduce((s,r)=>s+r.valor,0),0);
+  document.getElementById('rec-total-badge').textContent = 'Total: R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2});
+
+  // ── Tabela Títulos a Receber ─────────────────────────────────────────────────
+  const sortedR = [...filtered].sort((a,b)=>a.venc.split('/').reverse().join('').localeCompare(b.venc.split('/').reverse().join('')));
+  let tHtmlR = `<table class="tbl"><thead><tr><th>Documento</th><th>Cliente</th><th>Vencimento</th><th>Produto</th><th>Tipo</th><th style="text-align:right">Valor</th></tr></thead><tbody>`;
+  sortedR.forEach((r,i) => {
+    const bg = i%2===0?'':'background:#f8fafc';
+    tHtmlR += `<tr style="${bg}"><td style="font-family:monospace;font-size:.75rem">${r.doc}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td style="font-size:.82rem">${r.venc}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${REC_COLORS[r.produto]||'#94a3b8'}22;color:${REC_COLORS[r.produto]||'#64748b'}">${r.produto}</span></td><td style="font-size:.78rem">${r.tipo}</td><td style="text-align:right;font-weight:600">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  tHtmlR += '</tbody></table>';
+  document.getElementById('tbl-areceber').innerHTML = tHtmlR;
+  document.getElementById('rec-count-badge').textContent = `${sortedR.length} títulos`;
+}
+
+// ============================================================
+// FLUXO ORÇADO — CONSOLIDADO (parse FC_Consolidado + render)
+// ============================================================
+function parseConsolidado(wb) {
+  const ws = wb.Sheets['FC_Consolidado'];
+  if (!ws) return null;
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (!rows.length) return null;
+  const header = rows[0];
+  const meses = header.slice(1, -1); // exclui "Indicador" e "TOTAL"
+  const data = {};
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const label = String(row[0]||'').trim();
+    if (!label) continue;
+    data[label] = meses.map((_, idx) => parseFloat(row[idx+1])||0);
+  }
+  return { meses, data };
+}
+
+function renderConsolidado() {
+  if (!gConsolidado || !gConsolidado.meses || !gConsolidado.meses.length) {
+    document.getElementById('cons-kpis').innerHTML =
+      '<div class="empty" style="grid-column:1/-1">Aba FC_Consolidado não encontrada. Execute gerar_apagar.js e gerar_areceber.js (nessa ordem) e reimporte o arquivo.</div>';
+    return;
+  }
+
+  const { meses, data } = gConsolidado;
+  const entradas = data['Entradas (a receber)'] || meses.map(()=>0);
+  const saidas   = data['Saídas (a pagar)'] || meses.map(()=>0);
+  const saldoMes = data['= Saldo do Mês'] || meses.map((_,i)=>entradas[i]-saidas[i]);
+  const saldoAcum= data['Saldo Acumulado'] || (() => { let acc=0; return saldoMes.map(v=>acc+=v); })();
+
+  const totalEntradas = entradas.reduce((a,b)=>a+b,0);
+  const totalSaidas   = saidas.reduce((a,b)=>a+b,0);
+  const saldoProjetado= totalEntradas - totalSaidas;
+
+  const fmtK = v => {
+    const av = Math.abs(v);
+    const sign = v<0?'-':'';
+    if (av>=1e6) return sign+'R$ '+(av/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'M';
+    if (av>=1e3) return sign+'R$ '+(av/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'K';
+    return sign+'R$ '+av.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
+
+  document.getElementById('cons-kpis').innerHTML = `
+    <div class="kpi green"><div class="kpi-lbl">Total a Receber</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalEntradas)}</div><div class="kpi-sub">${meses.length} meses projetados</div></div>
+    <div class="kpi navy"><div class="kpi-lbl">Total a Pagar</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalSaidas)}</div><div class="kpi-sub">${meses.length} meses projetados</div></div>
+    <div class="kpi ${saldoProjetado>=0?'teal':'red'}"><div class="kpi-lbl">Saldo Projetado</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(saldoProjetado)}</div><div class="kpi-sub">Entradas − Saídas</div></div>
+  `;
+
+  if(gCharts['c-cons-mensal']){gCharts['c-cons-mensal'].destroy();delete gCharts['c-cons-mensal'];}
+  const ctxC = document.getElementById('c-cons-mensal').getContext('2d');
+  gCharts['c-cons-mensal'] = new Chart(ctxC, {
+    data: {
+      labels: meses,
+      datasets: [
+        { type:'bar', label:'Entradas', data: entradas, backgroundColor:'#059669', order:2 },
+        { type:'bar', label:'Saídas',   data: saidas,   backgroundColor:'#dc2626', order:2 },
+        { type:'line', label:'Saldo Acumulado', data: saldoAcum, borderColor:'#1e3a5f', backgroundColor:'#1e3a5f', tension:.3, order:1, yAxisID:'y' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}` } }
+      },
+      scales: { y: { ticks: { font: { size: 10 }, callback: v => 'R$'+Math.round(v/1000)+'K' } }, x: { ticks: { font: { size: 10 } } } }
+    }
+  });
+
+  let html = `<table class="tbl"><thead><tr><th>Indicador</th>${meses.map(m=>`<th style="text-align:right">${m}</th>`).join('')}<th style="text-align:right">TOTAL</th></tr></thead><tbody>`;
+  function row(label, arr, bold=false, bg='') {
+    const total = arr.reduce((a,b)=>a+b,0);
+    const style = bg?`background:${bg};`:'';
+    const fw = bold?'font-weight:700;':'';
+    html += `<tr style="${style}${fw}"><td style="${style}${fw}">${label}</td>${arr.map(v=>`<td style="text-align:right;${style}${fw}">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;${style}${fw}">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  }
+  row('Entradas (a receber)', entradas, false, '#e2efda');
+  row('Saídas (a pagar)', saidas, false, '#fce4d6');
+  row('= Saldo do Mês', saldoMes, true, '#d9e1f2');
+  html += `<tr style="background:#1e3a5f"><td style="color:#fff;font-weight:700">Saldo Acumulado</td>${saldoAcum.map(v=>`<td style="text-align:right;color:#fff;font-weight:700">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;color:#fff;font-weight:700">R$ ${saldoAcum[saldoAcum.length-1].toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  html += '</tbody></table>';
+  document.getElementById('tbl-fc-consolidado').innerHTML = html;
 }
 
 // ============================================================
