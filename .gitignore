@@ -1,5 +1,4 @@
 node_modules/
-a pagar.pdf
-a receber.pdf
+pdfs/
 netlify/
 *.bat

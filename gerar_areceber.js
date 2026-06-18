@@ -5,13 +5,16 @@
 const ExcelJS = require('./node_modules/exceljs');
 const { parsePDF, DATE_RE, CODE_RE, VALUE_RE } = require('./pdf_parser_comum');
 const path = require('path');
+const fs   = require('fs');
 
 const XLSX_PATH = path.join(__dirname, 'WP_Demonstrações_Financeiras.xlsx');
-const PDF_PATH  = path.join(__dirname, 'a receber.pdf');
+const PDF_DIR   = path.join(__dirname, 'pdfs', 'a receber');
 
 // ── Produtos reconhecidos no histórico ────────────────────────────────────────
 const PRODUTOS = ['CONCRETO', 'AREIA', 'ARGAMASSA', 'CIMENTO'];
 const PRODUTO_RE = new RegExp(`^(${PRODUTOS.join('|')})$`, 'i');
+// CIMENTO não é vendido — remapeia para Areia (texto do PDF refere-se a venda de areia)
+const PRODUTO_REMAP = { 'CIMENTO': 'AREIA' };
 
 // Parser de linha específico para "a receber": além de doc/datas/cod/valor,
 // tenta extrair o produto vendido pela posição (mesmo truque usado para datas/códigos/valores).
@@ -38,7 +41,8 @@ function parseRowReceber(texts) {
   const records = [];
   for (let i = 0; i < n; i++) {
     if (!vencDates[i] || !codes[i] || !values[i]) continue;
-    const produto = produtos[i] ? produtos[i].toUpperCase() : 'Outros';
+    let produto = produtos[i] ? produtos[i].toUpperCase() : 'OUTROS';
+    produto = PRODUTO_REMAP[produto] || produto;
     records.push([
       docCandidates[i] || '',
       emissaoDates[i]  || '',
@@ -76,8 +80,35 @@ function mesLabel(yyyyMM) {
 }
 
 async function main() {
-  console.log(`📄 Lendo PDF: ${PDF_PATH}`);
-  const DADOS = await parsePDF(PDF_PATH, parseRowReceber);
+  if (!fs.existsSync(PDF_DIR)) {
+    console.error(`❌ Pasta não encontrada: ${PDF_DIR}`);
+    console.error(`   Crie a pasta e coloque os PDFs de "a receber" dentro dela.`);
+    process.exit(1);
+  }
+  const pdfFiles = fs.readdirSync(PDF_DIR)
+    .filter(f => f.toLowerCase().endsWith('.pdf'))
+    .map(f => path.join(PDF_DIR, f));
+
+  if (!pdfFiles.length) {
+    console.error(`❌ Nenhum PDF encontrado em: ${PDF_DIR}`);
+    process.exit(1);
+  }
+
+  let allRecords = [];
+  for (const pdfFile of pdfFiles) {
+    console.log(`📄 Lendo: ${path.basename(pdfFile)}`);
+    const records = await parsePDF(pdfFile, parseRowReceber);
+    allRecords = allRecords.concat(records);
+  }
+
+  // Deduplicação entre arquivos (mesma chave usada internamente pelo parsePDF)
+  const seenKeys = new Set();
+  const DADOS = allRecords.filter(r => {
+    const k = `${r[0]}|${r[3]}|${r[6]}`;
+    if (seenKeys.has(k)) return false;
+    seenKeys.add(k); return true;
+  });
+  console.log(`✅ ${DADOS.length} registros únicos de ${pdfFiles.length} arquivo(s) (${allRecords.length - DADOS.length} duplicatas removidas)`);
 
   // Preenche nome via Clientes (ou fallback)
   DADOS.forEach(r => { r[4] = CLIENTES_MAP[r[3]] || ('CLIENTE ' + r[3]); });

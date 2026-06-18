@@ -5,9 +5,10 @@
 const ExcelJS = require('./node_modules/exceljs');
 const { parsePDF } = require('./pdf_parser_comum');
 const path = require('path');
+const fs   = require('fs');
 
 const XLSX_PATH = path.join(__dirname, 'WP_Demonstrações_Financeiras.xlsx');
-const PDF_PATH  = path.join(__dirname, 'a pagar.pdf');
+const PDF_DIR   = path.join(__dirname, 'pdfs', 'a pagar');
 
 // ── DE-PARA: cod → {nome, categoria} ─────────────────────────────────────────
 const DEPARA = [
@@ -597,9 +598,36 @@ function mesLabel(yyyyMM) {
 }
 
 async function main() {
-  // ── Lê PDF ──────────────────────────────────────────────────────────────────
-  console.log(`📄 Lendo PDF: ${PDF_PATH}`);
-  const DADOS = await parsePDF(PDF_PATH);
+  // ── Lê todos os PDFs da pasta ────────────────────────────────────────────────
+  if (!fs.existsSync(PDF_DIR)) {
+    console.error(`❌ Pasta não encontrada: ${PDF_DIR}`);
+    console.error(`   Crie a pasta e coloque os PDFs de "a pagar" dentro dela.`);
+    process.exit(1);
+  }
+  const pdfFiles = fs.readdirSync(PDF_DIR)
+    .filter(f => f.toLowerCase().endsWith('.pdf'))
+    .map(f => path.join(PDF_DIR, f));
+
+  if (!pdfFiles.length) {
+    console.error(`❌ Nenhum PDF encontrado em: ${PDF_DIR}`);
+    process.exit(1);
+  }
+
+  let allRecords = [];
+  for (const pdfFile of pdfFiles) {
+    console.log(`📄 Lendo: ${path.basename(pdfFile)}`);
+    const records = await parsePDF(pdfFile);
+    allRecords = allRecords.concat(records);
+  }
+
+  // Deduplicação entre arquivos (chave: doc|codFornecedor|valor)
+  const seenKeys = new Set();
+  const DADOS = allRecords.filter(r => {
+    const k = `${r[0]}|${r[3]}|${r[6]}`;
+    if (seenKeys.has(k)) return false;
+    seenKeys.add(k); return true;
+  });
+  console.log(`✅ ${DADOS.length} registros únicos de ${pdfFiles.length} arquivo(s) (${allRecords.length - DADOS.length} duplicatas removidas)`);
 
   // Preenche nome via DePara (ou fallback)
   const DEPARA_NOME = {};
