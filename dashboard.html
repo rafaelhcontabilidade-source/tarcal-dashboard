@@ -194,6 +194,14 @@ table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
 .orc-subbtn.active.n{background:var(--navy);border-color:var(--navy)}
 .orc-subpage{display:none}
 .orc-subpage.active{display:block}
+.real-subnav{display:flex;gap:.5rem;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:.75rem}
+.real-subbtn{padding:.5rem 1.125rem;border:1px solid var(--border);border-radius:999px;background:#fff;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.real-subbtn:hover{border-color:var(--blue);color:var(--blue)}
+.real-subbtn.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.real-subbtn.active.g{background:var(--green);border-color:var(--green)}
+.real-subbtn.active.n{background:var(--navy);border-color:var(--navy)}
+.real-subpage{display:none}
+.real-subpage.active{display:block}
 </style>
 </head>
 <body>
@@ -282,6 +290,8 @@ table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
         <div class="nav-item" onclick="goTab('vendas')"><span class="nav-icon">📦</span><span>Vendas</span></div>
         <div class="sb-sec">Caixa</div>
         <div class="nav-item" onclick="goTab('orcado')"><span class="nav-icon">🗓️</span><span>Fluxo Orçado</span></div>
+        <div class="nav-item" onclick="goTab('realizado')"><span class="nav-icon">✅</span><span>Fluxo Realizado</span></div>
+        <div class="nav-item" onclick="goTab('comparativo')"><span class="nav-icon">⚖️</span><span>Fluxo Comparativo</span></div>
       </div>
       <div class="sb-foot">
         <div>Powered by SheetJS + Chart.js</div>
@@ -494,6 +504,111 @@ table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
             <div class="cb"><div class="tbl-wrap" id="tbl-fc-consolidado"></div></div>
           </div>
         </div>
+      <!-- ═══════════════════════════════════════════════════════ FLUXO REALIZADO -->
+      <div id="tab-realizado" class="page">
+        <div class="real-subnav">
+          <button class="real-subbtn g" id="real-subbtn-recebidos" onclick="goRealSub('recebidos')">📥 Recebidos</button>
+          <button class="real-subbtn active" id="real-subbtn-pagos" onclick="goRealSub('pagos')">📤 Pagos</button>
+          <button class="real-subbtn n" id="real-subbtn-consolidado" onclick="goRealSub('consolidado')">⚖️ Consolidado</button>
+        </div>
+
+        <!-- ─── SUB-ABA: RECEBIDOS ────────────────────────────────────────── -->
+        <div id="real-sub-recebidos" class="real-subpage">
+          <div class="kpi-grid" id="real-rec-kpis"></div>
+          <div class="card" style="margin-bottom:.875rem;padding:.75rem 1rem">
+            <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+              <span class="fl">Período</span>
+              <select class="fsel" id="real-rec-mes-sel" onchange="renderRealizadoRecebidos()" style="min-width:120px">
+                <option value="">Todos os meses</option>
+              </select>
+              <span class="fl">Produto</span>
+              <select class="fsel" id="real-rec-cat-sel" onchange="renderRealizadoRecebidos()" style="min-width:180px">
+                <option value="">Todos</option>
+              </select>
+            </div>
+          </div>
+          <div class="g2" style="margin-bottom:.875rem">
+            <div class="card">
+              <div class="ch"><span class="ct">Entradas por Mês e Produto (R$)</span></div>
+              <div class="chart-wrap h300"><canvas id="c-real-rec-mensal"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="ch"><span class="ct" id="real-rec-donut-title">Composição do Período</span></div>
+              <div class="chart-wrap h300"><canvas id="c-real-rec-donut"></canvas></div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:.875rem">
+            <div class="ch"><span class="ct">Fluxo de Caixa de Recebimentos Realizados</span><span id="real-rec-total-badge" class="badge badge-blue"></span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-fc-recebimentos"></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">Títulos Recebidos</span><span id="real-rec-count-badge" class="badge badge-blue"></span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-recebidos"></div></div>
+          </div>
+        </div>
+
+        <!-- ─── SUB-ABA: PAGOS ────────────────────────────────────────────── -->
+        <div id="real-sub-pagos" class="real-subpage active">
+          <div class="kpi-grid" id="real-pag-kpis"></div>
+          <div class="card" style="margin-bottom:.875rem;padding:.75rem 1rem">
+            <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+              <span class="fl">Período</span>
+              <select class="fsel" id="real-pag-mes-sel" onchange="renderRealizadoPagos()" style="min-width:120px">
+                <option value="">Todos os meses</option>
+              </select>
+              <span class="fl">Categoria</span>
+              <select class="fsel" id="real-pag-cat-sel" onchange="renderRealizadoPagos()" style="min-width:180px">
+                <option value="">Todas</option>
+              </select>
+            </div>
+          </div>
+          <div class="g2" style="margin-bottom:.875rem">
+            <div class="card">
+              <div class="ch"><span class="ct">Saídas por Mês e Categoria (R$)</span></div>
+              <div class="chart-wrap h300"><canvas id="c-real-pag-mensal"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="ch"><span class="ct" id="real-pag-donut-title">Composição do Período</span></div>
+              <div class="chart-wrap h300"><canvas id="c-real-pag-donut"></canvas></div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:.875rem">
+            <div class="ch"><span class="ct">Fluxo de Caixa de Pagamentos Realizados</span><span id="real-pag-total-badge" class="badge badge-blue"></span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-fc-pagos"></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">Títulos Pagos</span><span id="real-pag-count-badge" class="badge badge-blue"></span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-pagos"></div></div>
+          </div>
+        </div>
+
+        <!-- ─── SUB-ABA: CONSOLIDADO REALIZADO ───────────────────────────── -->
+        <div id="real-sub-consolidado" class="real-subpage">
+          <div class="kpi-grid" id="real-cons-kpis"></div>
+          <div class="card" style="margin-bottom:.875rem">
+            <div class="ch"><span class="ct">Recebido × Pago × Saldo Acumulado (R$)</span></div>
+            <div class="chart-wrap h300"><canvas id="c-real-cons-mensal"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">Fluxo de Caixa Realizado Consolidado</span></div>
+            <div class="cb"><div class="tbl-wrap" id="tbl-fc-realizado"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ FLUXO COMPARATIVO -->
+      <div id="tab-comparativo" class="page">
+        <div class="kpi-grid" id="comp-kpis"></div>
+        <div class="card" style="margin-bottom:.875rem">
+          <div class="ch"><span class="ct">Orçado × Realizado por Mês (R$)</span></div>
+          <div class="chart-wrap h320"><canvas id="c-comp-mensal"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Fluxo Comparativo — Orçado × Realizado</span></div>
+          <div class="cb"><div class="tbl-wrap" id="tbl-fc-comparativo"></div></div>
+        </div>
+      </div>
+
       </div>
     </div>
   </div>
@@ -913,13 +1028,19 @@ function updatePeriodTag(){
 // ============================================================
 // NAVIGATION
 // ============================================================
-const TAB_TITLES={visao:'Visão Geral Executiva',dre:'DRE — Demonstrativo do Resultado',balanco:'Balanço Patrimonial',fluxo:'Fluxo de Caixa',indicadores:'Indicadores Financeiros',vendas:'Análise de Vendas',orcado:'Fluxo de Caixa Orçado — A Receber / A Pagar / Consolidado'};
+const TAB_TITLES={visao:'Visão Geral Executiva',dre:'DRE — Demonstrativo do Resultado',balanco:'Balanço Patrimonial',fluxo:'Fluxo de Caixa',indicadores:'Indicadores Financeiros',vendas:'Análise de Vendas',orcado:'Fluxo de Caixa Orçado — A Receber / A Pagar / Consolidado',realizado:'Fluxo de Caixa Realizado — Recebidos / Pagos / Consolidado',comparativo:'Fluxo Comparativo — Orçado × Realizado'};
 
 function goOrcSub(sub){
   document.querySelectorAll('.orc-subpage').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.orc-subbtn').forEach(b=>b.classList.remove('active'));
   document.getElementById('orc-sub-'+sub).classList.add('active');
   document.getElementById('orc-subbtn-'+sub).classList.add('active');
+}
+function goRealSub(sub){
+  document.querySelectorAll('.real-subpage').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.real-subbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('real-sub-'+sub).classList.add('active');
+  document.getElementById('real-subbtn-'+sub).classList.add('active');
 }
 function goTab(tab){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -965,6 +1086,10 @@ function renderAll(){
   renderOrcado();
   renderRecebido();
   renderConsolidado();
+  renderRealizadoPagos();
+  renderRealizadoRecebidos();
+  renderRealizadoConsolidado();
+  renderComparativo();
 }
 
 // ============================================================
@@ -1551,7 +1676,9 @@ function showUpload(){
 }
 
 function resetApp(){
-  gAM={};gPeriods=[];gVendas=[];gAPagar=[];gAReceber=[];gConsolidado=[];curPeriod='';
+  gAM={};gPeriods=[];gVendas=[];gAPagar=[];gAReceber=[];gConsolidado=[];
+  gPagos=[];gRecebidos=[];gRealizadoConsolidado=null;gComparativo=null;
+  curPeriod='';
   Object.values(gCharts).forEach(c=>c.destroy());gCharts={};
   showUpload();
 }
@@ -1817,7 +1944,24 @@ async function processBuffer(buffer){
     }
     // FC_Consolidado
     if(wb.Sheets['FC_Consolidado']){
-      gConsolidado=parseConsolidado(wb);
+      gConsolidado=parseConsolidadoSheet(wb,'FC_Consolidado');
+    }
+    // Fluxo Realizado
+    if(wb.Sheets['Pagos']){
+      showLoading('Processando Pagamentos Realizados…');
+      gPagos=parsePagos(wb);
+      buildRealPagFilters();
+    }
+    if(wb.Sheets['Recebidos']){
+      showLoading('Processando Recebimentos Realizados…');
+      gRecebidos=parseRecebidos(wb);
+      buildRealRecFilters();
+    }
+    if(wb.Sheets['FC_Realizado']){
+      gRealizadoConsolidado=parseConsolidadoSheet(wb,'FC_Realizado');
+    }
+    if(wb.Sheets['FC_Comparativo']){
+      gComparativo=parseComparativo(wb);
     }
     curPeriod=gPeriods[gPeriods.length-1];
     buildPeriodSelectors();
@@ -1837,6 +1981,10 @@ async function processBuffer(buffer){
 let gAPagar = [];
 let gAReceber = [];
 let gConsolidado = [];
+let gPagos = [];
+let gRecebidos = [];
+let gRealizadoConsolidado = null;
+let gComparativo = null;
 
 const ORC_CATS_OP = [
   'Matérias-Primas','Combustível','Fretes e Logística',
@@ -2320,8 +2468,8 @@ function renderRecebido() {
 // ============================================================
 // FLUXO ORÇADO — CONSOLIDADO (parse FC_Consolidado + render)
 // ============================================================
-function parseConsolidado(wb) {
-  const ws = wb.Sheets['FC_Consolidado'];
+function parseConsolidadoSheet(wb, sheetName) {
+  const ws = wb.Sheets[sheetName];
   if (!ws) return null;
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
   if (!rows.length) return null;
@@ -2402,6 +2550,394 @@ function renderConsolidado() {
   html += `<tr style="background:#1e3a5f"><td style="color:#fff;font-weight:700">Saldo Acumulado</td>${saldoAcum.map(v=>`<td style="text-align:right;color:#fff;font-weight:700">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;color:#fff;font-weight:700">R$ ${saldoAcum[saldoAcum.length-1].toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
   html += '</tbody></table>';
   document.getElementById('tbl-fc-consolidado').innerHTML = html;
+}
+
+// ============================================================
+// FLUXO REALIZADO — PAGOS
+// ============================================================
+function parsePagos(wb) {
+  const ws = wb.Sheets['Pagos'];
+  if (!ws) return [];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  return rows.map(r => ({
+    doc:      String(r['Documento']||''),
+    emissao:  String(r['Emissao']||''),
+    venc:     String(r['Vencimento']||''),
+    mesVenc:  String(r['MesVenc']||''),
+    cod:      r['Fornecedor_Cod']||'',
+    nome:     String(r['Fornecedor_Nome']||''),
+    hist:     String(r['Historico']||''),
+    valor:    parseFloat(r['Valor'])||0,
+    cat:      String(r['Categoria']||'Outros Operacionais'),
+    tipo:     String(r['Tipo']||'Realizado'),
+    grupoMae: String(r['GrupoMae']||'Saídas Operacionais'),
+  })).filter(r => r.valor > 0 && r.mesVenc && r.mesVenc !== 'MesVenc');
+}
+
+function buildRealPagFilters() {
+  if (!gPagos.length) return;
+  const meses = [...new Set(gPagos.map(r=>r.mesVenc))].sort();
+  const cats  = [...new Set(gPagos.map(r=>r.cat))].sort();
+  const mSel  = document.getElementById('real-pag-mes-sel');
+  const cSel  = document.getElementById('real-pag-cat-sel');
+  if (!mSel) return;
+  mSel.innerHTML = '<option value="">Todos os meses</option>';
+  meses.forEach(m => {
+    const [y,mo] = m.split('-');
+    const label = `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`;
+    mSel.innerHTML += `<option value="${m}">${label}</option>`;
+  });
+  cSel.innerHTML = '<option value="">Todas</option>';
+  cats.forEach(c => { cSel.innerHTML += `<option value="${c}">${c}</option>`; });
+}
+
+function filteredPagos() {
+  const mes = document.getElementById('real-pag-mes-sel')?.value||'';
+  const cat = document.getElementById('real-pag-cat-sel')?.value||'';
+  return gPagos.filter(r => (!mes || r.mesVenc===mes) && (!cat || r.cat===cat));
+}
+
+function renderRealizadoPagos() {
+  const kpisEl = document.getElementById('real-pag-kpis');
+  if (!kpisEl) return;
+  if (!gPagos.length) {
+    kpisEl.innerHTML = '<div class="empty" style="grid-column:1/-1">Aba Pagos não encontrada no Excel. Execute gerar_pagos.js e reimporte.</div>';
+    return;
+  }
+
+  const filtered = filteredPagos();
+  const totalGeral = gPagos.reduce((a,r)=>a+r.valor,0);
+  const totalFilt  = filtered.reduce((a,r)=>a+r.valor,0);
+
+  const byCat = {};
+  gPagos.forEach(r=>{ byCat[r.cat]=(byCat[r.cat]||0)+r.valor; });
+  const topCat = Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+
+  const fmtK = v => {
+    if (v>=1e6) return 'R$ '+(v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'M';
+    if (v>=1e3) return 'R$ '+(v/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'K';
+    return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  };
+
+  const meses = [...new Set(gPagos.map(r=>r.mesVenc))].sort();
+  const fmtMes = m => { if(!m)return'—'; const[y,mo]=m.split('-'); return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`; };
+
+  kpisEl.innerHTML = `
+    <div class="kpi red"><div class="kpi-lbl">Total Pago</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${gPagos.length} títulos | ${fmtMes(meses[0])}–${fmtMes(meses[meses.length-1])}</div></div>
+    <div class="kpi navy"><div class="kpi-lbl">Maior Categoria</div><div class="kpi-val" style="font-size:1.1rem">${topCat?topCat[0]:'—'}</div><div class="kpi-sub">${topCat?fmtK(topCat[1]):''}</div></div>
+    <div class="kpi blue"><div class="kpi-lbl">Filtro Atual</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos selecionados</div></div>
+  `;
+
+  // Gráfico barras por mês e categoria
+  const mesesAll = [...new Set(gPagos.map(r=>r.mesVenc))].sort();
+  const mesesLabels = mesesAll.map(m => fmtMes(m));
+  const cats = [...new Set(gPagos.map(r=>r.cat))];
+  const datasets = cats.map((cat,i) => ({
+    label: cat,
+    data: mesesAll.map(m => gPagos.filter(r=>r.mesVenc===m&&r.cat===cat).reduce((a,r)=>a+r.valor,0)),
+    backgroundColor: ORC_CAT_COLORS[cat]||PAL[i%PAL.length],
+    borderRadius: 2,
+  }));
+  mkChart('c-real-pag-mensal',{type:'bar',data:{labels:mesesLabels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}}},y:{stacked:true,ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'K'}}}}});
+
+  // Donut composição
+  const filtByCat = {};
+  filtered.forEach(r=>{ filtByCat[r.cat]=(filtByCat[r.cat]||0)+r.valor; });
+  const donutLabels = Object.keys(filtByCat);
+  const donutData   = donutLabels.map(k=>filtByCat[k]);
+  const donutColors = donutLabels.map(k=>ORC_CAT_COLORS[k]||'#94a3b8');
+  const filtMes = document.getElementById('real-pag-mes-sel')?.value||'';
+  document.getElementById('real-pag-donut-title').textContent = filtMes ? `Composição — ${fmtMes(filtMes)}` : 'Composição Total';
+  mkChart('c-real-pag-donut',{type:'doughnut',data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:donutColors,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}`}}}}});
+
+  // Tabela FC_Pagos
+  const fcWs = null; // dados vêm do gComparativo ou lemos do Excel — aqui renderizamos lista simples
+  let fcHtml = `<table class="tbl"><thead><tr><th>Categoria</th>${mesesLabels.map(l=>`<th style="text-align:right">${l}</th>`).join('')}<th style="text-align:right">TOTAL</th></tr></thead><tbody>`;
+  cats.forEach((cat,i) => {
+    const vals = mesesAll.map(m => gPagos.filter(r=>r.mesVenc===m&&r.cat===cat).reduce((a,r)=>a+r.valor,0));
+    const tot  = vals.reduce((a,b)=>a+b,0);
+    if(!tot) return;
+    fcHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${ORC_CAT_COLORS[cat]||'#94a3b8'}22;color:${ORC_CAT_COLORS[cat]||'#64748b'}">${cat}</span></td>${vals.map(v=>`<td style="text-align:right">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;font-weight:700">R$ ${tot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  const totais = mesesAll.map(m => gPagos.filter(r=>r.mesVenc===m).reduce((a,r)=>a+r.valor,0));
+  fcHtml += `<tr style="background:#9f1239"><td style="color:#fff;font-weight:700">TOTAL PAGO</td>${totais.map(v=>`<td style="text-align:right;color:#fff;font-weight:700">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;color:#fff;font-weight:700">R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  fcHtml += '</tbody></table>';
+  document.getElementById('tbl-fc-pagos').innerHTML = fcHtml;
+  document.getElementById('real-pag-total-badge').textContent = `R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+
+  // Tabela detalhada
+  const sorted = [...filtered].sort((a,b)=>a.venc.split('/').reverse().join('').localeCompare(b.venc.split('/').reverse().join('')));
+  let tHtml = `<table class="tbl"><thead><tr><th>Documento</th><th>Fornecedor</th><th>Histórico</th><th>Vencimento</th><th>Categoria</th><th style="text-align:right">Valor</th></tr></thead><tbody>`;
+  sorted.forEach((r,i) => {
+    tHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td style="font-family:monospace;font-size:.75rem">${r.doc}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td style="color:var(--muted);font-size:.8rem">${r.hist}</td><td style="font-size:.82rem">${r.venc}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${ORC_CAT_COLORS[r.cat]||'#94a3b8'}22;color:${ORC_CAT_COLORS[r.cat]||'#64748b'}">${r.cat}</span></td><td style="text-align:right;font-weight:600">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  tHtml += '</tbody></table>';
+  document.getElementById('tbl-pagos').innerHTML = tHtml;
+  document.getElementById('real-pag-count-badge').textContent = `${sorted.length} títulos`;
+}
+
+// ============================================================
+// FLUXO REALIZADO — RECEBIDOS
+// ============================================================
+function parseRecebidos(wb) {
+  const ws = wb.Sheets['Recebidos'];
+  if (!ws) return [];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  return rows.map(r => ({
+    doc:      String(r['Documento']||''),
+    emissao:  String(r['Emissao']||''),
+    venc:     String(r['Vencimento']||''),
+    mesVenc:  String(r['MesVenc']||''),
+    cod:      r['Cliente_Cod']||'',
+    nome:     String(r['Cliente_Nome']||''),
+    valor:    parseFloat(r['Valor'])||0,
+    produto:  String(r['Produto']||'Outros'),
+    tipo:     String(r['Tipo']||'Realizado'),
+    grupoMae: String(r['GrupoMae']||'Entradas Operacionais'),
+  })).filter(r => r.valor > 0 && r.mesVenc && r.mesVenc !== 'MesVenc');
+}
+
+function buildRealRecFilters() {
+  if (!gRecebidos.length) return;
+  const meses = [...new Set(gRecebidos.map(r=>r.mesVenc))].sort();
+  const prods = [...new Set(gRecebidos.map(r=>r.produto))].sort();
+  const mSel  = document.getElementById('real-rec-mes-sel');
+  const cSel  = document.getElementById('real-rec-cat-sel');
+  if (!mSel) return;
+  mSel.innerHTML = '<option value="">Todos os meses</option>';
+  meses.forEach(m => {
+    const [y,mo] = m.split('-');
+    const label = `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`;
+    mSel.innerHTML += `<option value="${m}">${label}</option>`;
+  });
+  cSel.innerHTML = '<option value="">Todos</option>';
+  prods.forEach(p => { cSel.innerHTML += `<option value="${p}">${p}</option>`; });
+}
+
+function filteredRecebidos() {
+  const mes = document.getElementById('real-rec-mes-sel')?.value||'';
+  const cat = document.getElementById('real-rec-cat-sel')?.value||'';
+  return gRecebidos.filter(r => (!mes || r.mesVenc===mes) && (!cat || r.produto===cat));
+}
+
+function renderRealizadoRecebidos() {
+  const kpisEl = document.getElementById('real-rec-kpis');
+  if (!kpisEl) return;
+  if (!gRecebidos.length) {
+    kpisEl.innerHTML = '<div class="empty" style="grid-column:1/-1">Aba Recebidos não encontrada no Excel. Execute gerar_recebidos.js e reimporte.</div>';
+    return;
+  }
+
+  const filtered = filteredRecebidos();
+  const totalGeral = gRecebidos.reduce((a,r)=>a+r.valor,0);
+  const totalFilt  = filtered.reduce((a,r)=>a+r.valor,0);
+
+  const byProd = {};
+  gRecebidos.forEach(r=>{ byProd[r.produto]=(byProd[r.produto]||0)+r.valor; });
+  const topProd = Object.entries(byProd).sort((a,b)=>b[1]-a[1])[0];
+
+  const fmtK = v => {
+    if (v>=1e6) return 'R$ '+(v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'M';
+    if (v>=1e3) return 'R$ '+(v/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'K';
+    return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  };
+
+  const meses = [...new Set(gRecebidos.map(r=>r.mesVenc))].sort();
+  const fmtMes = m => { if(!m)return'—'; const[y,mo]=m.split('-'); return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`; };
+
+  kpisEl.innerHTML = `
+    <div class="kpi green"><div class="kpi-lbl">Total Recebido</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${gRecebidos.length} títulos | ${fmtMes(meses[0])}–${fmtMes(meses[meses.length-1])}</div></div>
+    <div class="kpi teal"><div class="kpi-lbl">Maior Produto</div><div class="kpi-val" style="font-size:1.1rem">${topProd?topProd[0]:'—'}</div><div class="kpi-sub">${topProd?fmtK(topProd[1]):''}</div></div>
+    <div class="kpi blue"><div class="kpi-lbl">Filtro Atual</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos selecionados</div></div>
+  `;
+
+  const mesesAll = [...new Set(gRecebidos.map(r=>r.mesVenc))].sort();
+  const mesesLabels = mesesAll.map(m => fmtMes(m));
+  const prods = [...new Set(gRecebidos.map(r=>r.produto))];
+  const datasets = prods.map((p,i) => ({
+    label: p,
+    data: mesesAll.map(m => gRecebidos.filter(r=>r.mesVenc===m&&r.produto===p).reduce((a,r)=>a+r.valor,0)),
+    backgroundColor: REC_COLORS[p]||PAL[i%PAL.length],
+    borderRadius: 2,
+  }));
+  mkChart('c-real-rec-mensal',{type:'bar',data:{labels:mesesLabels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}}},y:{stacked:true,ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'K'}}}}});
+
+  const filtByProd = {};
+  filtered.forEach(r=>{ filtByProd[r.produto]=(filtByProd[r.produto]||0)+r.valor; });
+  const dLabels = Object.keys(filtByProd);
+  mkChart('c-real-rec-donut',{type:'doughnut',data:{labels:dLabels,datasets:[{data:dLabels.map(k=>filtByProd[k]),backgroundColor:dLabels.map(k=>REC_COLORS[k]||'#94a3b8'),borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}`}}}}});
+
+  const filtMes = document.getElementById('real-rec-mes-sel')?.value||'';
+  document.getElementById('real-rec-donut-title').textContent = filtMes ? `Composição — ${fmtMes(filtMes)}` : 'Composição Total';
+
+  let fcHtml = `<table class="tbl"><thead><tr><th>Produto</th>${mesesLabels.map(l=>`<th style="text-align:right">${l}</th>`).join('')}<th style="text-align:right">TOTAL</th></tr></thead><tbody>`;
+  prods.forEach((p,i) => {
+    const vals = mesesAll.map(m => gRecebidos.filter(r=>r.mesVenc===m&&r.produto===p).reduce((a,r)=>a+r.valor,0));
+    const tot  = vals.reduce((a,b)=>a+b,0);
+    if(!tot) return;
+    fcHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td>${p}</td>${vals.map(v=>`<td style="text-align:right">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;font-weight:700">R$ ${tot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  const totais = mesesAll.map(m => gRecebidos.filter(r=>r.mesVenc===m).reduce((a,r)=>a+r.valor,0));
+  fcHtml += `<tr style="background:#145a32"><td style="color:#fff;font-weight:700">TOTAL RECEBIDO</td>${totais.map(v=>`<td style="text-align:right;color:#fff;font-weight:700">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;color:#fff;font-weight:700">R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  fcHtml += '</tbody></table>';
+  document.getElementById('tbl-fc-recebimentos').innerHTML = fcHtml;
+  document.getElementById('real-rec-total-badge').textContent = `R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+
+  const sorted = [...filtered].sort((a,b)=>a.venc.split('/').reverse().join('').localeCompare(b.venc.split('/').reverse().join('')));
+  let tHtml = `<table class="tbl"><thead><tr><th>Documento</th><th>Cliente</th><th>Vencimento</th><th>Produto</th><th style="text-align:right">Valor</th></tr></thead><tbody>`;
+  sorted.forEach((r,i) => {
+    tHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td style="font-family:monospace;font-size:.75rem">${r.doc}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td style="font-size:.82rem">${r.venc}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${REC_COLORS[r.produto]||'#94a3b8'}22;color:${REC_COLORS[r.produto]||'#64748b'}">${r.produto}</span></td><td style="text-align:right;font-weight:600">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  tHtml += '</tbody></table>';
+  document.getElementById('tbl-recebidos').innerHTML = tHtml;
+  document.getElementById('real-rec-count-badge').textContent = `${sorted.length} títulos`;
+}
+
+// ============================================================
+// FLUXO REALIZADO — CONSOLIDADO
+// ============================================================
+function renderRealizadoConsolidado() {
+  const kpisEl = document.getElementById('real-cons-kpis');
+  if (!kpisEl) return;
+  if (!gRealizadoConsolidado || !gRealizadoConsolidado.meses || !gRealizadoConsolidado.meses.length) {
+    kpisEl.innerHTML = '<div class="empty" style="grid-column:1/-1">FC_Realizado não encontrado. Execute gerar_recebidos.js e reimporte.</div>';
+    return;
+  }
+
+  const { meses, data } = gRealizadoConsolidado;
+  const entradas = data['Entradas (recebido)'] || meses.map(()=>0);
+  const saidas   = data['Saídas (pago)'] || meses.map(()=>0);
+  const saldoMes = data['= Saldo do Mês'] || meses.map((_,i)=>entradas[i]-saidas[i]);
+  const saldoAcum= data['Saldo Acumulado'] || (() => { let acc=0; return saldoMes.map(v=>acc+=v); })();
+
+  const totalEntradas  = entradas.reduce((a,b)=>a+b,0);
+  const totalSaidas    = saidas.reduce((a,b)=>a+b,0);
+  const saldoProjetado = totalEntradas - totalSaidas;
+
+  const fmtK = v => {
+    const av=Math.abs(v), sign=v<0?'-':'';
+    if (av>=1e6) return sign+'R$ '+(av/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'M';
+    if (av>=1e3) return sign+'R$ '+(av/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'K';
+    return sign+'R$ '+av.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  };
+
+  kpisEl.innerHTML = `
+    <div class="kpi green"><div class="kpi-lbl">Total Recebido</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalEntradas)}</div><div class="kpi-sub">${meses.length} meses</div></div>
+    <div class="kpi red"><div class="kpi-lbl">Total Pago</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalSaidas)}</div><div class="kpi-sub">${meses.length} meses</div></div>
+    <div class="kpi ${saldoProjetado>=0?'teal':'red'}"><div class="kpi-lbl">Saldo Realizado</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(saldoProjetado)}</div><div class="kpi-sub">Recebido − Pago</div></div>
+  `;
+
+  mkChart('c-real-cons-mensal',{data:{labels:meses,datasets:[
+    {type:'bar',label:'Recebido',data:entradas,backgroundColor:'#059669',order:2},
+    {type:'bar',label:'Pago',data:saidas,backgroundColor:'#dc2626',order:2},
+    {type:'line',label:'Saldo Acumulado',data:saldoAcum,borderColor:'#1e3a5f',backgroundColor:'#1e3a5f',tension:.3,order:1,yAxisID:'y'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}`}}},scales:{y:{ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'K'}},x:{ticks:{font:{size:10}}}}}});
+
+  let html = `<table class="tbl"><thead><tr><th>Indicador</th>${meses.map(m=>`<th style="text-align:right">${m}</th>`).join('')}<th style="text-align:right">TOTAL</th></tr></thead><tbody>`;
+  const row = (label,arr,bold,bg) => {
+    const tot = arr.reduce((a,b)=>a+b,0);
+    const s = bg?`background:${bg};`:''; const f = bold?'font-weight:700;':'';
+    html += `<tr style="${s}${f}"><td style="${s}${f}">${label}</td>${arr.map(v=>`<td style="text-align:right;${s}${f}">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;${s}${f}">R$ ${tot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  };
+  row('Entradas (recebido)',entradas,false,'#e2efda');
+  row('Saídas (pago)',saidas,false,'#fce4d6');
+  row('= Saldo do Mês',saldoMes,true,'#d9e1f2');
+  html += `<tr style="background:#1e3a5f"><td style="color:#fff;font-weight:700">Saldo Acumulado</td>${saldoAcum.map(v=>`<td style="text-align:right;color:#fff;font-weight:700">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;color:#fff;font-weight:700">R$ ${saldoAcum[saldoAcum.length-1].toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  html += '</tbody></table>';
+  document.getElementById('tbl-fc-realizado').innerHTML = html;
+}
+
+// ============================================================
+// FLUXO COMPARATIVO — parse + render
+// ============================================================
+function parseComparativo(wb) {
+  const ws = wb.Sheets['FC_Comparativo'];
+  if (!ws) return null;
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (!rows.length) return null;
+  const header = rows[0];
+  const meses = header.slice(1, -1);
+  const data = {};
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const label = String(row[0]||'').trim();
+    if (!label || label.startsWith('──')) continue;
+    data[label] = meses.map((_,idx) => parseFloat(row[idx+1])||0);
+  }
+  return { meses, data };
+}
+
+function renderComparativo() {
+  const kpisEl = document.getElementById('comp-kpis');
+  if (!kpisEl) return;
+  if (!gComparativo || !gComparativo.meses || !gComparativo.meses.length) {
+    kpisEl.innerHTML = '<div class="empty" style="grid-column:1/-1">FC_Comparativo não encontrado. Execute gerar_recebidos.js e reimporte.</div>';
+    return;
+  }
+
+  const { meses, data } = gComparativo;
+  const get = k => data[k] || meses.map(()=>0);
+
+  const orcEnt  = get('Entradas Orçado');
+  const realEnt = get('Entradas Realizado');
+  const orcSai  = get('Saídas Orçado');
+  const realSai = get('Saídas Realizado');
+  const orcSaldo  = get('Saldo Orçado');
+  const realSaldo = get('Saldo Realizado');
+  const deltaSaldo = get('Δ Saldo (Real − Orç)');
+
+  const sumArr = arr => arr.reduce((a,b)=>a+b,0);
+  const pctStr = (real,orc) => orc ? ((real/orc)*100).toFixed(1)+'%' : '—';
+
+  const fmtK = v => {
+    const av=Math.abs(v), sign=v<0?'-':'';
+    if (av>=1e6) return sign+'R$ '+(av/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'M';
+    if (av>=1e3) return sign+'R$ '+(av/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'K';
+    return sign+'R$ '+av.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  };
+
+  const totalOrcEnt  = sumArr(orcEnt),  totalRealEnt = sumArr(realEnt);
+  const totalOrcSai  = sumArr(orcSai),  totalRealSai = sumArr(realSai);
+  const totalDeltaSaldo = sumArr(deltaSaldo);
+
+  kpisEl.innerHTML = `
+    <div class="kpi green"><div class="kpi-lbl">Entradas: Real/Orç</div><div class="kpi-val">${pctStr(totalRealEnt,totalOrcEnt)}</div><div class="kpi-sub">${fmtK(totalRealEnt)} de ${fmtK(totalOrcEnt)}</div></div>
+    <div class="kpi red"><div class="kpi-lbl">Saídas: Real/Orç</div><div class="kpi-val">${pctStr(totalRealSai,totalOrcSai)}</div><div class="kpi-sub">${fmtK(totalRealSai)} de ${fmtK(totalOrcSai)}</div></div>
+    <div class="kpi ${totalDeltaSaldo>=0?'teal':'red'}"><div class="kpi-lbl">Δ Saldo (Real−Orç)</div><div class="kpi-val">${fmtK(totalDeltaSaldo)}</div><div class="kpi-sub">positivo = melhor que orçado</div></div>
+  `;
+
+  mkChart('c-comp-mensal',{type:'bar',data:{labels:meses,datasets:[
+    {label:'Entradas Orçado',   data:orcEnt,   backgroundColor:'#86efac', borderRadius:2},
+    {label:'Entradas Realizado',data:realEnt,  backgroundColor:'#059669', borderRadius:2},
+    {label:'Saídas Orçado',     data:orcSai,   backgroundColor:'#fca5a5', borderRadius:2},
+    {label:'Saídas Realizado',  data:realSai,  backgroundColor:'#dc2626', borderRadius:2},
+    {type:'line',label:'Δ Saldo',data:deltaSaldo,borderColor:'#7c3aed',backgroundColor:'transparent',tension:.3,order:0,yAxisID:'y'},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: R$ ${ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}`}}},scales:{y:{ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'K'}},x:{ticks:{font:{size:10}}}}}});
+
+  const COMP_ROWS = [
+    {label:'Entradas Orçado',    key:'Entradas Orçado',       bg:'#e2efda'},
+    {label:'Entradas Realizado', key:'Entradas Realizado',    bg:'#d6eaf8'},
+    {label:'Δ Entradas',         key:'Δ Entradas (Real − Orç)',bg:'#f0f0f0',bold:true},
+    null,
+    {label:'Saídas Orçado',      key:'Saídas Orçado',         bg:'#fce4d6'},
+    {label:'Saídas Realizado',   key:'Saídas Realizado',      bg:'#fde8d8'},
+    {label:'Δ Saídas',           key:'Δ Saídas (Real − Orç)', bg:'#f0f0f0',bold:true},
+    null,
+    {label:'Saldo Orçado',       key:'Saldo Orçado',          bg:'#d9e1f2'},
+    {label:'Saldo Realizado',    key:'Saldo Realizado',       bg:'#d6eaf8'},
+    {label:'Δ Saldo',            key:'Δ Saldo (Real − Orç)',  bg:'#f0f0f0',bold:true},
+  ];
+
+  let html = `<table class="tbl"><thead><tr><th>Indicador</th>${meses.map(m=>`<th style="text-align:right">${m}</th>`).join('')}<th style="text-align:right">TOTAL</th></tr></thead><tbody>`;
+  COMP_ROWS.forEach(r => {
+    if (!r) { html += `<tr><td colspan="${meses.length+2}" style="height:6px;padding:0"></td></tr>`; return; }
+    const vals = get(r.key);
+    const tot  = sumArr(vals);
+    const s = r.bg?`background:${r.bg};`:''; const f = r.bold?'font-weight:700;':'';
+    html += `<tr style="${s}${f}"><td style="${s}${f}">${r.label}</td>${vals.map(v=>`<td style="text-align:right;${s}${f}">R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`).join('')}<td style="text-align:right;${s}${f}">R$ ${tot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('tbl-fc-comparativo').innerHTML = html;
 }
 
 // ============================================================
