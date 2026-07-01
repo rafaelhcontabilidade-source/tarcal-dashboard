@@ -3,7 +3,52 @@
 // Lê todos os PDFs da pasta pdfs/pagos/
 
 const ExcelJS = require('./node_modules/exceljs');
-const { parsePDF } = require('./pdf_parser_comum');
+const { parsePDF, DATE_RE, CODE_RE, VALUE_RE } = require('./pdf_parser_comum');
+
+// Parser específico para "Relatório de Contas Pagas" do Gdoor
+// Colunas: Documento | Emissão | Vencimento | Pagamento | Fornecedor | Portador
+//        | Valor da parcela | Juros | Descontos | Valor Pago
+// → 3 datas por registro, 4 valores por registro. Queremos "Valor Pago" (último grupo).
+function parseRowPagos(texts) {
+  const dates  = texts.filter(t => DATE_RE.test(t));
+  const codes  = texts.filter(t => CODE_RE.test(t));
+  const values = texts.filter(t => VALUE_RE.test(t));
+
+  if (!dates.length || !codes.length || !values.length) return [];
+
+  // n = número de registros na linha
+  const n = Math.floor(Math.min(dates.length / 3, codes.length, values.length / 4));
+  if (n < 1) return [];
+
+  const firstDateIdx = texts.findIndex(t => DATE_RE.test(t));
+  const docCandidates = texts.slice(0, firstDateIdx)
+    .filter(t => !DATE_RE.test(t) && !CODE_RE.test(t) && !VALUE_RE.test(t));
+
+  // datas: [emissao x n] [vencimento x n] [pagamento x n]
+  const emissaoDates = dates.slice(0, n);
+  const pagDates     = dates.slice(2 * n, 3 * n);   // data de pagamento (efetiva)
+
+  // valores: [parcela x n] [juros x n] [descontos x n] [pago x n]
+  // "Valor Pago" = últimos n valores
+  const valorPagoStart = values.length - n;
+
+  const records = [];
+  for (let i = 0; i < n; i++) {
+    const pagDate  = pagDates[i];
+    const valorPago = values[valorPagoStart + i];
+    if (!pagDate || !codes[i] || !valorPago) continue;
+    records.push([
+      docCandidates[i] || '',
+      emissaoDates[i]  || '',
+      pagDate,   // data de pagamento real como "vencimento" no fluxo realizado
+      parseInt(codes[i]),
+      '',
+      '',
+      parseFloat(String(valorPago).replace(/\./g,'').replace(',','.'))
+    ]);
+  }
+  return records;
+}
 const path = require('path');
 const fs   = require('fs');
 
@@ -124,7 +169,7 @@ async function main() {
   let allRecords = [];
   for (const pdfFile of pdfFiles) {
     console.log(`📄 Lendo: ${path.basename(pdfFile)}`);
-    const records = await parsePDF(pdfFile);
+    const records = await parsePDF(pdfFile, parseRowPagos);
     allRecords = allRecords.concat(records);
   }
 
