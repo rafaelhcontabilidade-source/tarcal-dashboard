@@ -26,23 +26,37 @@ function parseRowPagos(texts) {
 
   // datas: [emissao x n] [vencimento x n] [pagamento x n]
   const emissaoDates = dates.slice(0, n);
-  const pagDates     = dates.slice(2 * n, 3 * n);   // data de pagamento (efetiva)
+  const pagDates     = dates.slice(2 * n, 3 * n);
 
-  // valores: [parcela x n] [juros x n] [descontos x n] [pago x n]
-  // "Valor Pago" = últimos n valores
+  // valores: últimos n = Valor Pago
   const valorPagoStart = values.length - n;
+
+  // Tenta extrair nome do fornecedor do PDF: tokens entre a última data e o primeiro código
+  let lastDateIdx = -1;
+  texts.forEach((t, i) => { if (DATE_RE.test(t)) lastDateIdx = i; });
+  const firstCodeIdx = texts.findIndex(t => CODE_RE.test(t));
+  const midTokens = texts
+    .slice(lastDateIdx + 1, firstCodeIdx >= 0 ? firstCodeIdx : texts.length)
+    .filter(t => !VALUE_RE.test(t) && t.trim().length > 1);
+  // midTokens contém: [nomeForns..., portadores...]. Pega os primeiros (antes dos portadores).
+  // Heurística: portador é curto (banco/espécie); nome de empresa tende a ser maior.
+  // Divide midTokens em 2*n partes e pega a primeira metade como nome.
+  const halfLen = Math.ceil(midTokens.length / 2);
+  const nameTokensAll = midTokens.slice(0, halfLen);
+  const chunkSize = Math.max(1, Math.ceil(nameTokensAll.length / n));
 
   const records = [];
   for (let i = 0; i < n; i++) {
-    const pagDate  = pagDates[i];
+    const pagDate   = pagDates[i];
     const valorPago = values[valorPagoStart + i];
     if (!pagDate || !codes[i] || !valorPago) continue;
+    const pdfName = nameTokensAll.slice(i * chunkSize, (i + 1) * chunkSize).join(' ');
     records.push([
       docCandidates[i] || '',
       emissaoDates[i]  || '',
-      pagDate,   // data de pagamento real como "vencimento" no fluxo realizado
+      pagDate,
       parseInt(codes[i]),
-      '',
+      pdfName,   // nome extraído do PDF (fallback se não estiver em DEPARA_NOME)
       '',
       parseFloat(String(valorPago).replace(/\./g,'').replace(',','.'))
     ]);
@@ -199,7 +213,7 @@ async function main() {
       if (cod && nome && !DEPARA_NOME[cod]) DEPARA_NOME[cod] = nome;
     });
   }
-  DADOS.forEach(r => { r[4] = DEPARA_NOME[r[3]] || ('FORNECEDOR ' + r[3]); });
+  DADOS.forEach(r => { r[4] = DEPARA_NOME[r[3]] || r[4] || ('FORNECEDOR ' + r[3]); });
 
   ['Pagos','FC_Pagos'].forEach(name => {
     const s = wb.getWorksheet(name);
