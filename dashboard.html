@@ -2259,16 +2259,24 @@ function renderOrcado() {
   const grandTotal = [...ORC_CATS_OP, ORC_CAT_FIN].reduce((a,cat)=>a+filtered.filter(r=>r.cat===cat).reduce((s,r)=>s+r.valor,0),0);
   document.getElementById('orc-total-badge').textContent = 'Total: R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2});
 
-  // ── Tabela Títulos ──────────────────────────────────────────────────────────
-  const sorted = [...filtered].sort((a,b)=>a.venc.split('/').reverse().join('').localeCompare(b.venc.split('/').reverse().join('')));
-  let tHtml = `<table class="tbl"><thead><tr><th>Documento</th><th>Fornecedor</th><th>Histórico</th><th>Vencimento</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th></tr></thead><tbody>`;
-  sorted.forEach((r,i) => {
-    const bg = i%2===0?'':'background:#f8fafc';
-    tHtml += `<tr style="${bg}"><td style="font-family:monospace;font-size:.75rem">${r.doc}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td style="color:var(--muted);font-size:.8rem">${r.hist}</td><td style="font-size:.82rem">${r.venc}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${ORC_CAT_COLORS[r.cat]||'#94a3b8'}22;color:${ORC_CAT_COLORS[r.cat]||'#64748b'}">${r.cat}</span></td><td style="font-size:.78rem">${r.tipo}</td><td style="text-align:right;font-weight:600">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  // ── Tabela por Fornecedor (consolidada, decrescente) ────────────────────────
+  const byFornMap = {};
+  filtered.forEach(r => {
+    if (!byFornMap[r.nome]) byFornMap[r.nome] = { nome: r.nome, cat: r.cat, total: 0, qtd: 0 };
+    byFornMap[r.nome].total += r.valor;
+    byFornMap[r.nome].qtd++;
   });
+  const byForn = Object.values(byFornMap).sort((a,b)=>b.total-a.total);
+  const grandFilt = byForn.reduce((a,r)=>a+r.total,0);
+  let tHtml = `<table class="tbl"><thead><tr><th>Fornecedor</th><th>Categoria</th><th style="text-align:right">Qtd</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead><tbody>`;
+  byForn.forEach((r,i) => {
+    const pct = grandFilt>0?(r.total/grandFilt*100).toFixed(1):'0.0';
+    tHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${ORC_CAT_COLORS[r.cat]||'#94a3b8'}22;color:${ORC_CAT_COLORS[r.cat]||'#64748b'}">${r.cat}</span></td><td style="text-align:right;color:var(--muted);font-size:.82rem">${r.qtd}</td><td style="text-align:right;font-weight:600">R$ ${r.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td><td style="text-align:right;color:var(--muted);font-size:.82rem">${pct}%</td></tr>`;
+  });
+  tHtml += `<tr style="background:#1e3a5f"><td style="color:#fff;font-weight:700" colspan="2">TOTAL</td><td style="text-align:right;color:#fff;font-weight:700">${byForn.reduce((a,r)=>a+r.qtd,0)}</td><td style="text-align:right;color:#fff;font-weight:700">R$ ${grandFilt.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td><td style="color:#fff">100%</td></tr>`;
   tHtml += '</tbody></table>';
   document.getElementById('tbl-apagar').innerHTML = tHtml;
-  document.getElementById('orc-count-badge').textContent = `${sorted.length} títulos`;
+  document.getElementById('orc-count-badge').textContent = `${byForn.length} fornecedores`;
 }
 
 // ============================================================
@@ -2468,16 +2476,24 @@ function renderRecebido() {
   const grandTotal = allProds.reduce((a,p)=>a+filtered.filter(r=>r.produto===p).reduce((s,r)=>s+r.valor,0),0);
   document.getElementById('rec-total-badge').textContent = 'Total: R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2});
 
-  // ── Tabela Títulos a Receber ─────────────────────────────────────────────────
-  const sortedR = [...filtered].sort((a,b)=>a.venc.split('/').reverse().join('').localeCompare(b.venc.split('/').reverse().join('')));
-  let tHtmlR = `<table class="tbl"><thead><tr><th>Documento</th><th>Cliente</th><th>Vencimento</th><th>Produto</th><th>Tipo</th><th style="text-align:right">Valor</th></tr></thead><tbody>`;
-  sortedR.forEach((r,i) => {
-    const bg = i%2===0?'':'background:#f8fafc';
-    tHtmlR += `<tr style="${bg}"><td style="font-family:monospace;font-size:.75rem">${r.doc}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td style="font-size:.82rem">${r.venc}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${REC_COLORS[r.produto]||'#94a3b8'}22;color:${REC_COLORS[r.produto]||'#64748b'}">${r.produto}</span></td><td style="font-size:.78rem">${r.tipo}</td><td style="text-align:right;font-weight:600">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  // ── Tabela por Cliente (consolidada, decrescente) ────────────────────────────
+  const byCliMap = {};
+  filtered.forEach(r => {
+    if (!byCliMap[r.nome]) byCliMap[r.nome] = { nome: r.nome, produto: r.produto, total: 0, qtd: 0 };
+    byCliMap[r.nome].total += r.valor;
+    byCliMap[r.nome].qtd++;
   });
+  const byCli = Object.values(byCliMap).sort((a,b)=>b.total-a.total);
+  const grandFiltR = byCli.reduce((a,r)=>a+r.total,0);
+  let tHtmlR = `<table class="tbl"><thead><tr><th>Cliente</th><th>Principal Produto</th><th style="text-align:right">Qtd</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead><tbody>`;
+  byCli.forEach((r,i) => {
+    const pct = grandFiltR>0?(r.total/grandFiltR*100).toFixed(1):'0.0';
+    tHtmlR += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${REC_COLORS[r.produto]||'#94a3b8'}22;color:${REC_COLORS[r.produto]||'#64748b'}">${r.produto}</span></td><td style="text-align:right;color:var(--muted);font-size:.82rem">${r.qtd}</td><td style="text-align:right;font-weight:600">R$ ${r.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td><td style="text-align:right;color:var(--muted);font-size:.82rem">${pct}%</td></tr>`;
+  });
+  tHtmlR += `<tr style="background:#145a32"><td style="color:#fff;font-weight:700" colspan="2">TOTAL</td><td style="text-align:right;color:#fff;font-weight:700">${byCli.reduce((a,r)=>a+r.qtd,0)}</td><td style="text-align:right;color:#fff;font-weight:700">R$ ${grandFiltR.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td><td style="color:#fff">100%</td></tr>`;
   tHtmlR += '</tbody></table>';
   document.getElementById('tbl-areceber').innerHTML = tHtmlR;
-  document.getElementById('rec-count-badge').textContent = `${sortedR.length} títulos`;
+  document.getElementById('rec-count-badge').textContent = `${byCli.length} clientes`;
 }
 
 // ============================================================
@@ -2680,15 +2696,24 @@ function renderRealizadoPagos() {
   document.getElementById('tbl-fc-pagos').innerHTML = fcHtml;
   document.getElementById('real-pag-total-badge').textContent = `R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
 
-  // Tabela detalhada
-  const sorted = [...filtered].sort((a,b)=>a.venc.split('/').reverse().join('').localeCompare(b.venc.split('/').reverse().join('')));
-  let tHtml = `<table class="tbl"><thead><tr><th>Documento</th><th>Fornecedor</th><th>Histórico</th><th>Vencimento</th><th>Categoria</th><th style="text-align:right">Valor</th></tr></thead><tbody>`;
-  sorted.forEach((r,i) => {
-    tHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td style="font-family:monospace;font-size:.75rem">${r.doc}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td style="color:var(--muted);font-size:.8rem">${r.hist}</td><td style="font-size:.82rem">${r.venc}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${ORC_CAT_COLORS[r.cat]||'#94a3b8'}22;color:${ORC_CAT_COLORS[r.cat]||'#64748b'}">${r.cat}</span></td><td style="text-align:right;font-weight:600">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  // Tabela por Fornecedor (consolidada, decrescente)
+  const byFornPagMap = {};
+  filtered.forEach(r => {
+    if (!byFornPagMap[r.nome]) byFornPagMap[r.nome] = { nome: r.nome, cat: r.cat, total: 0, qtd: 0 };
+    byFornPagMap[r.nome].total += r.valor;
+    byFornPagMap[r.nome].qtd++;
   });
+  const byFornPag = Object.values(byFornPagMap).sort((a,b)=>b.total-a.total);
+  const grandFiltPag = byFornPag.reduce((a,r)=>a+r.total,0);
+  let tHtml = `<table class="tbl"><thead><tr><th>Fornecedor</th><th>Categoria</th><th style="text-align:right">Qtd</th><th style="text-align:right">Total Pago</th><th style="text-align:right">%</th></tr></thead><tbody>`;
+  byFornPag.forEach((r,i) => {
+    const pct = grandFiltPag>0?(r.total/grandFiltPag*100).toFixed(1):'0.0';
+    tHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${ORC_CAT_COLORS[r.cat]||'#94a3b8'}22;color:${ORC_CAT_COLORS[r.cat]||'#64748b'}">${r.cat}</span></td><td style="text-align:right;color:var(--muted);font-size:.82rem">${r.qtd}</td><td style="text-align:right;font-weight:600">R$ ${r.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td><td style="text-align:right;color:var(--muted);font-size:.82rem">${pct}%</td></tr>`;
+  });
+  tHtml += `<tr style="background:#9f1239"><td style="color:#fff;font-weight:700" colspan="2">TOTAL PAGO</td><td style="text-align:right;color:#fff;font-weight:700">${byFornPag.reduce((a,r)=>a+r.qtd,0)}</td><td style="text-align:right;color:#fff;font-weight:700">R$ ${grandFiltPag.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td><td style="color:#fff">100%</td></tr>`;
   tHtml += '</tbody></table>';
   document.getElementById('tbl-pagos').innerHTML = tHtml;
-  document.getElementById('real-pag-count-badge').textContent = `${sorted.length} títulos`;
+  document.getElementById('real-pag-count-badge').textContent = `${byFornPag.length} fornecedores`;
 }
 
 // ============================================================
@@ -2798,14 +2823,23 @@ function renderRealizadoRecebidos() {
   document.getElementById('tbl-fc-recebimentos').innerHTML = fcHtml;
   document.getElementById('real-rec-total-badge').textContent = `R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
 
-  const sorted = [...filtered].sort((a,b)=>a.venc.split('/').reverse().join('').localeCompare(b.venc.split('/').reverse().join('')));
-  let tHtml = `<table class="tbl"><thead><tr><th>Documento</th><th>Cliente</th><th>Vencimento</th><th>Produto</th><th style="text-align:right">Valor</th></tr></thead><tbody>`;
-  sorted.forEach((r,i) => {
-    tHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td style="font-family:monospace;font-size:.75rem">${r.doc}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td style="font-size:.82rem">${r.venc}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${REC_COLORS[r.produto]||'#94a3b8'}22;color:${REC_COLORS[r.produto]||'#64748b'}">${r.produto}</span></td><td style="text-align:right;font-weight:600">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`;
+  const byCliRecMap = {};
+  filtered.forEach(r => {
+    if (!byCliRecMap[r.nome]) byCliRecMap[r.nome] = { nome: r.nome, produto: r.produto, total: 0, qtd: 0 };
+    byCliRecMap[r.nome].total += r.valor;
+    byCliRecMap[r.nome].qtd++;
   });
+  const byCliRec = Object.values(byCliRecMap).sort((a,b)=>b.total-a.total);
+  const grandFiltRec = byCliRec.reduce((a,r)=>a+r.total,0);
+  let tHtml = `<table class="tbl"><thead><tr><th>Cliente</th><th>Principal Produto</th><th style="text-align:right">Qtd</th><th style="text-align:right">Total Recebido</th><th style="text-align:right">%</th></tr></thead><tbody>`;
+  byCliRec.forEach((r,i) => {
+    const pct = grandFiltRec>0?(r.total/grandFiltRec*100).toFixed(1):'0.0';
+    tHtml += `<tr style="${i%2===0?'':'background:#f8fafc'}"><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nome}">${r.nome}</td><td><span style="display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:${REC_COLORS[r.produto]||'#94a3b8'}22;color:${REC_COLORS[r.produto]||'#64748b'}">${r.produto}</span></td><td style="text-align:right;color:var(--muted);font-size:.82rem">${r.qtd}</td><td style="text-align:right;font-weight:600">R$ ${r.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td><td style="text-align:right;color:var(--muted);font-size:.82rem">${pct}%</td></tr>`;
+  });
+  tHtml += `<tr style="background:#145a32"><td style="color:#fff;font-weight:700" colspan="2">TOTAL RECEBIDO</td><td style="text-align:right;color:#fff;font-weight:700">${byCliRec.reduce((a,r)=>a+r.qtd,0)}</td><td style="text-align:right;color:#fff;font-weight:700">R$ ${grandFiltRec.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td><td style="color:#fff">100%</td></tr>`;
   tHtml += '</tbody></table>';
   document.getElementById('tbl-recebidos').innerHTML = tHtml;
-  document.getElementById('real-rec-count-badge').textContent = `${sorted.length} títulos`;
+  document.getElementById('real-rec-count-badge').textContent = `${byCliRec.length} clientes`;
 }
 
 // ============================================================
