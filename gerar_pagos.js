@@ -181,8 +181,6 @@ async function main() {
   });
   console.log(`✅ ${DADOS.length} registros únicos de ${pdfFiles.length} arquivo(s) (${allRecords.length - DADOS.length} duplicatas removidas)`);
 
-  DADOS.forEach(r => { r[4] = DEPARA_NOME[r[3]] || ('FORNECEDOR ' + r[3]); });
-
   const mesesSet = new Set(DADOS.map(r => mesVenc(r[2])));
   const MESES = Array.from(mesesSet).sort();
   const MESES_LABEL = MESES.map(mesLabel);
@@ -190,6 +188,18 @@ async function main() {
   console.log(`📊 Lendo Excel: ${XLSX_PATH}`);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(XLSX_PATH);
+
+  // Complementa DEPARA_NOME com nomes da aba DePara (criada pelo gerar_apagar.js)
+  const wsDePara = wb.getWorksheet('DePara');
+  if (wsDePara) {
+    wsDePara.eachRow((row, rowNum) => {
+      if (rowNum === 1) return;
+      const cod  = parseInt(row.getCell(1).value);
+      const nome = String(row.getCell(2).value || '').trim();
+      if (cod && nome && !DEPARA_NOME[cod]) DEPARA_NOME[cod] = nome;
+    });
+  }
+  DADOS.forEach(r => { r[4] = DEPARA_NOME[r[3]] || ('FORNECEDOR ' + r[3]); });
 
   ['Pagos','FC_Pagos'].forEach(name => {
     const s = wb.getWorksheet(name);

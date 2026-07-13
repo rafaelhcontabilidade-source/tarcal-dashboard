@@ -132,8 +132,6 @@ async function main() {
   });
   console.log(`✅ ${DADOS.length} registros únicos de ${pdfFiles.length} arquivo(s) (${allRecords.length - DADOS.length} duplicatas removidas)`);
 
-  DADOS.forEach(r => { r[4] = CLIENTES_MAP[r[3]] || ('CLIENTE ' + r[3]); });
-
   const mesesSet = new Set(DADOS.map(r => mesVenc(r[2])));
   const MESES = Array.from(mesesSet).sort();
   const MESES_LABEL = MESES.map(mesLabel);
@@ -141,6 +139,18 @@ async function main() {
   console.log(`📊 Lendo Excel: ${XLSX_PATH}`);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(XLSX_PATH);
+
+  // Complementa CLIENTES_MAP com nomes da aba Clientes (criada pelo gerar_areceber.js)
+  const wsClientes = wb.getWorksheet('Clientes');
+  if (wsClientes) {
+    wsClientes.eachRow((row, rowNum) => {
+      if (rowNum === 1) return;
+      const cod  = parseInt(row.getCell(1).value);
+      const nome = String(row.getCell(2).value || '').trim();
+      if (cod && nome && !CLIENTES_MAP[cod]) CLIENTES_MAP[cod] = nome;
+    });
+  }
+  DADOS.forEach(r => { r[4] = CLIENTES_MAP[r[3]] || ('CLIENTE ' + r[3]); });
 
   ['Recebidos','FC_Recebimentos','FC_Realizado','FC_Comparativo'].forEach(name => {
     const s = wb.getWorksheet(name);
