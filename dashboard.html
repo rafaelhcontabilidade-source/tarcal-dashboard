@@ -2079,7 +2079,7 @@ function renderOrcado() {
   }
 
   const filtered = filteredAPagar();
-  const today    = new Date(); today.setHours(0,0,0,0);
+  const today    = new Date();
   const d30      = new Date(today); d30.setDate(d30.getDate()+30);
   const d60      = new Date(today); d60.setDate(d60.getDate()+60);
 
@@ -2088,38 +2088,46 @@ function renderOrcado() {
     const [d,m,y] = s.split('/');
     return new Date(+y, +m-1, +d);
   }
-  function mesEmissao(r) {
-    if (!r.emissao || r.emissao.length < 10) return '';
-    const p = r.emissao.split('/');
-    return `${p[2]}-${String(p[1]).padStart(2,'0')}`;
-  }
 
-  // Base para os cards: emissão = mês selecionado (curPeriod) + vencimento futuro
-  const base = curPeriod
-    ? gAPagar.filter(r => mesEmissao(r) === curPeriod && (()=>{ const dt=parseVencDate(r.venc); return dt&&dt>=today; })())
-    : gAPagar.filter(r => { const dt=parseVencDate(r.venc); return dt&&dt>=today; });
-
-  const totalGeral = base.reduce((a,r)=>a+r.valor,0);
-  const v30 = base.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt<=d30; }).reduce((a,r)=>a+r.valor,0);
-  const v60 = base.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>d30&&dt<=d60; }).reduce((a,r)=>a+r.valor,0);
+  const totalGeral = gAPagar.reduce((a,r)=>a+r.valor,0);
+  const v30 = gAPagar.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>=today&&dt<=d30; }).reduce((a,r)=>a+r.valor,0);
+  const v60 = gAPagar.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>d30&&dt<=d60; }).reduce((a,r)=>a+r.valor,0);
   const totalFilt = filtered.reduce((a,r)=>a+r.valor,0);
 
+  // Prazo médio de pagamento (emissão → vencimento), ponderado pelo valor
+  const pmpDays = (() => {
+    let somaValor = 0, somaDiasValor = 0;
+    gAPagar.forEach(r => {
+      const dtE = parseVencDate(r.emissao);
+      const dtV = parseVencDate(r.venc);
+      if (!dtE || !dtV) return;
+      const dias = Math.round((dtV - dtE) / 86400000);
+      if (dias < 0 || dias > 730) return; // ignora outliers
+      somaDiasValor += dias * r.valor;
+      somaValor += r.valor;
+    });
+    return somaValor > 0 ? Math.round(somaDiasValor / somaValor) : null;
+  })();
+
+  // PMP simples (média aritmética)
   const pmpSimples = (() => {
-    const pares = base.filter(r => {
+    const pares = gAPagar.filter(r => {
       const dtE = parseVencDate(r.emissao);
       const dtV = parseVencDate(r.venc);
       if (!dtE || !dtV) return false;
       const dias = Math.round((dtV - dtE) / 86400000);
       return dias >= 0 && dias <= 730;
     }).map(r => {
-      const dtE = parseVencDate(r.emissao); const dtV = parseVencDate(r.venc);
+      const dtE = parseVencDate(r.emissao);
+      const dtV = parseVencDate(r.venc);
       return Math.round((dtV - dtE) / 86400000);
     });
     return pares.length ? Math.round(pares.reduce((a,b)=>a+b,0)/pares.length) : null;
   })();
 
+  // Top categoria
   const byCat = {};
-  base.forEach(r=>{ byCat[r.cat]=(byCat[r.cat]||0)+r.valor; });
+  gAPagar.forEach(r=>{ byCat[r.cat]=(byCat[r.cat]||0)+r.valor; });
   const topCat = Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
 
   const fmt = v => 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -2128,18 +2136,19 @@ function renderOrcado() {
     if (v>=1e3) return 'R$ '+(v/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'K';
     return fmt(v);
   };
+
+  const nReg = gAPagar.length;
+  const mesMin = gAPagar.map(r=>r.mesVenc).sort()[0]||'';
+  const mesMax = gAPagar.map(r=>r.mesVenc).sort().reverse()[0]||'';
   const fmtMesLabel = m => { if(!m)return'—'; const[y,mo]=m.split('-'); return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`; };
-  const subLabel = curPeriod
-    ? `${base.length} títulos emitidos em ${fmtMesLabel(curPeriod)} com venc. futuro`
-    : `${base.length} títulos com vencimento futuro`;
 
   document.getElementById('orc-kpis').innerHTML = `
-    <div class="kpi navy"><div class="kpi-lbl">Total a Pagar</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${subLabel}</div></div>
+    <div class="kpi navy"><div class="kpi-lbl">Total a Pagar</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${nReg} títulos | ${fmtMesLabel(mesMin)}–${fmtMesLabel(mesMax)}</div></div>
     <div class="kpi red"><div class="kpi-lbl">Vence em ≤ 30 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v30)}</div><div class="kpi-sub">até ${d30.toLocaleDateString('pt-BR')}</div></div>
     <div class="kpi orange"><div class="kpi-lbl">Vence em 31–60 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v60)}</div><div class="kpi-sub">31 a 60 dias</div></div>
     <div class="kpi purple"><div class="kpi-lbl">Prazo Médio Pagamento</div><div class="kpi-val">${pmpSimples!=null?pmpSimples+' dias':'—'}</div><div class="kpi-sub">emissão → vencimento</div></div>
     <div class="kpi blue"><div class="kpi-lbl">Maior Categoria</div><div class="kpi-val" style="font-size:1.1rem">${topCat?topCat[0].split(' ')[0]:'—'}</div><div class="kpi-sub">${topCat?fmtK(topCat[1]):''}</div></div>
-    <div class="kpi teal"><div class="kpi-lbl">Mês Selecionado</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos em ${fmtMesLabel(curPeriod)||'todos'}</div></div>
+    <div class="kpi teal"><div class="kpi-lbl">Filtro Atual</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos selecionados</div></div>
   `;
 
   // ── Pivot por mês × categoria ──────────────────────────────────────────────
@@ -2332,7 +2341,10 @@ function renderRecebido() {
   }
 
   const filtered = filteredAReceber();
-  const today = new Date(); today.setHours(0,0,0,0);
+  const mesSel = document.getElementById('rec-mes-sel')?.value || '';
+  // curPeriod é o mês do topbar (ex: "2026-07"); base = a partir desse mês
+  const baseFrom = curPeriod || mesSel;
+  const today = new Date();
   const d30 = new Date(today); d30.setDate(d30.getDate()+30);
   const d60 = new Date(today); d60.setDate(d60.getDate()+60);
 
@@ -2341,30 +2353,25 @@ function renderRecebido() {
     const [d,m,y] = s.split('/');
     return new Date(+y, +m-1, +d);
   }
-  function mesEmissaoR(r) {
-    if (!r.emissao || r.emissao.length < 10) return '';
-    const p = r.emissao.split('/');
-    return `${p[2]}-${String(p[1]).padStart(2,'0')}`;
-  }
 
-  // Base: emissão = mês selecionado (curPeriod) + vencimento futuro
-  const base = curPeriod
-    ? gAReceber.filter(r => mesEmissaoR(r) === curPeriod && (()=>{ const dt=parseVencDate(r.venc); return dt&&dt>=today; })())
-    : gAReceber.filter(r => { const dt=parseVencDate(r.venc); return dt&&dt>=today; });
+  // Base para os cards: a partir do mês do topbar (ou tudo se sem filtro)
+  const base = baseFrom ? gAReceber.filter(r => r.mesVenc >= baseFrom) : gAReceber;
 
   const totalGeral = base.reduce((a,r)=>a+r.valor,0);
-  const v30 = base.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt<=d30; }).reduce((a,r)=>a+r.valor,0);
+  const v30 = base.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>=today&&dt<=d30; }).reduce((a,r)=>a+r.valor,0);
   const v60 = base.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>d30&&dt<=d60; }).reduce((a,r)=>a+r.valor,0);
   const totalFilt = filtered.reduce((a,r)=>a+r.valor,0);
 
   const pmrSimples = (() => {
     const pares = base.filter(r => {
-      const dtE = parseVencDate(r.emissao); const dtV = parseVencDate(r.venc);
+      const dtE = parseVencDate(r.emissao);
+      const dtV = parseVencDate(r.venc);
       if (!dtE || !dtV) return false;
       const dias = Math.round((dtV - dtE) / 86400000);
       return dias >= 0 && dias <= 730;
     }).map(r => {
-      const dtE = parseVencDate(r.emissao); const dtV = parseVencDate(r.venc);
+      const dtE = parseVencDate(r.emissao);
+      const dtV = parseVencDate(r.venc);
       return Math.round((dtV - dtE) / 86400000);
     });
     return pares.length ? Math.round(pares.reduce((a,b)=>a+b,0)/pares.length) : null;
@@ -2379,10 +2386,12 @@ function renderRecebido() {
     if (v>=1e3) return 'R$ '+(v/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'K';
     return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   };
+
+  const nReg = base.length;
+  const mesMin = base.map(r=>r.mesVenc).sort()[0]||'';
+  const mesMax = base.map(r=>r.mesVenc).sort().reverse()[0]||'';
   const fmtMesLabel = m => { if(!m)return'—'; const[y,mo]=m.split('-'); return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`; };
-  const subLabel = curPeriod
-    ? `${base.length} títulos emitidos em ${fmtMesLabel(curPeriod)} com venc. futuro`
-    : `${base.length} títulos com vencimento futuro`;
+  const subLabel = mesSel ? `${nReg} títulos | a partir de ${fmtMesLabel(mesMin)}` : `${nReg} títulos | ${fmtMesLabel(mesMin)}–${fmtMesLabel(mesMax)}`;
 
   document.getElementById('rec-kpis').innerHTML = `
     <div class="kpi green"><div class="kpi-lbl">Total a Receber</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${subLabel}</div></div>
@@ -2390,7 +2399,7 @@ function renderRecebido() {
     <div class="kpi blue"><div class="kpi-lbl">Recebe em 31–60 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v60)}</div><div class="kpi-sub">31 a 60 dias</div></div>
     <div class="kpi purple"><div class="kpi-lbl">Prazo Médio Recebimento</div><div class="kpi-val">${pmrSimples!=null?pmrSimples+' dias':'—'}</div><div class="kpi-sub">emissão → vencimento</div></div>
     <div class="kpi navy"><div class="kpi-lbl">Maior Produto</div><div class="kpi-val" style="font-size:1.1rem">${topProd?topProd[0]:'—'}</div><div class="kpi-sub">${topProd?fmtK(topProd[1]):''}</div></div>
-    <div class="kpi green"><div class="kpi-lbl">Mês Selecionado</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos em ${fmtMesLabel(curPeriod)||'todos'}</div></div>
+    <div class="kpi green"><div class="kpi-lbl">Mês Selecionado</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos em ${fmtMesLabel(mesSel)||'todos os meses'}</div></div>
   `;
 
   const allMeses = [...new Set(gAReceber.map(r=>r.mesVenc))].sort();
