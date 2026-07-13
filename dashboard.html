@@ -814,31 +814,42 @@ function bp(period){
   // 2.x: credit accounts → negative in balancete → negate to get positive amounts
   const gl=c=>-acc(c,period);
 
-  const disponivel=ga('1.1.1');
-  const clientes=ga('1.1.2');
-  const outCred=ga('1.1.3');
-  const estoque=ga('1.1.5');
-  const despAnt=ga('1.1.6');
-  const ac=disponivel+clientes+outCred+estoque+despAnt;
-  const rlp=ga('1.2.1');
-  const invest=ga('1.2.2');
-  const imob=ga('1.2.3');
-  const intang=ga('1.2.4');
-  const anc=rlp+invest+imob+intang;
-  const ativo=ac+anc;
+  // Ativo — totais pelos grupos-pai (captura todas as contas, inclusive não mapeadas)
+  const ac  = ga('1.1');
+  const anc = ga('1.2');
+  const ativo = ga('1');   // total 1.x — garante que Ativo = Passivo
 
-  const empCP=gl('2.1.1');
-  const fornec=gl('2.1.3');
-  const obTrib=gl('2.1.4');
-  const obTrab=gl('2.1.5');
-  const outObrig=gl('2.1.6');
-  const pc=empCP+fornec+obTrib+obTrab+outObrig;
-  const empLP=gl('2.2.1');
-  const pnc=empLP;
-  const capSoc=gl('2.3.1');
-  const lucAcum=gl('2.3.3');
-  const pl=capSoc+lucAcum;
-  const passivo=pc+pnc+pl;
+  // Sub-contas do AC para detalhe (uso em outros cálculos e exibição)
+  const disponivel = ga('1.1.1');
+  const clientes   = ga('1.1.2');
+  const outCred    = ga('1.1.3');
+  const estoque    = ga('1.1.5');
+  const despAnt    = ga('1.1.6');
+
+  // Sub-contas do ANC
+  const rlp    = ga('1.2.1');
+  const invest = ga('1.2.2');
+  const imob   = ga('1.2.3');
+  const intang = ga('1.2.4');
+
+  // Passivo — totais pelos grupos-pai
+  const pc  = gl('2.1');
+  const pnc = gl('2.2');
+  const pl  = gl('2.3');
+  const passivo = gl('2');  // total 2.x — espelha Ativo
+
+  // Sub-contas do PC para detalhe
+  const empCP    = gl('2.1.1');
+  const fornec   = gl('2.1.3');
+  const obTrib   = gl('2.1.4');
+  const obTrab   = gl('2.1.5');
+  const outObrig = gl('2.1.6');
+
+  // Sub-contas PNC e PL
+  const empLP   = gl('2.2.1');
+  const capSoc  = gl('2.3.1');
+  const lucAcum = gl('2.3.3');
+
   return{disponivel,clientes,outCred,estoque,despAnt,ac,rlp,invest,imob,intang,anc,ativo,
     empCP,fornec,obTrib,obTrab,outObrig,pc,empLP,pnc,capSoc,lucAcum,pl,passivo};
 }
