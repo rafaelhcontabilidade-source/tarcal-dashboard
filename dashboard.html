@@ -2336,6 +2336,7 @@ function renderRecebido() {
   }
 
   const filtered = filteredAReceber();
+  const mesSel = document.getElementById('rec-mes-sel')?.value || '';
   const today = new Date();
   const d30 = new Date(today); d30.setDate(d30.getDate()+30);
   const d60 = new Date(today); d60.setDate(d60.getDate()+60);
@@ -2346,13 +2347,16 @@ function renderRecebido() {
     return new Date(+y, +m-1, +d);
   }
 
-  const totalGeral = gAReceber.reduce((a,r)=>a+r.valor,0);
-  const v30 = gAReceber.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>=today&&dt<=d30; }).reduce((a,r)=>a+r.valor,0);
-  const v60 = gAReceber.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>d30&&dt<=d60; }).reduce((a,r)=>a+r.valor,0);
+  // Base para os cards: a partir do mês selecionado (ou tudo se nenhum mês escolhido)
+  const base = mesSel ? gAReceber.filter(r => r.mesVenc >= mesSel) : gAReceber;
+
+  const totalGeral = base.reduce((a,r)=>a+r.valor,0);
+  const v30 = base.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>=today&&dt<=d30; }).reduce((a,r)=>a+r.valor,0);
+  const v60 = base.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>d30&&dt<=d60; }).reduce((a,r)=>a+r.valor,0);
   const totalFilt = filtered.reduce((a,r)=>a+r.valor,0);
 
   const pmrSimples = (() => {
-    const pares = gAReceber.filter(r => {
+    const pares = base.filter(r => {
       const dtE = parseVencDate(r.emissao);
       const dtV = parseVencDate(r.venc);
       if (!dtE || !dtV) return false;
@@ -2367,7 +2371,7 @@ function renderRecebido() {
   })();
 
   const byProd = {};
-  gAReceber.forEach(r=>{ byProd[r.produto]=(byProd[r.produto]||0)+r.valor; });
+  base.forEach(r=>{ byProd[r.produto]=(byProd[r.produto]||0)+r.valor; });
   const topProd = Object.entries(byProd).sort((a,b)=>b[1]-a[1])[0];
 
   const fmtK = v => {
@@ -2376,18 +2380,19 @@ function renderRecebido() {
     return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   };
 
-  const nReg = gAReceber.length;
-  const mesMin = gAReceber.map(r=>r.mesVenc).sort()[0]||'';
-  const mesMax = gAReceber.map(r=>r.mesVenc).sort().reverse()[0]||'';
+  const nReg = base.length;
+  const mesMin = base.map(r=>r.mesVenc).sort()[0]||'';
+  const mesMax = base.map(r=>r.mesVenc).sort().reverse()[0]||'';
   const fmtMesLabel = m => { if(!m)return'—'; const[y,mo]=m.split('-'); return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)]}/${String(y).slice(2)}`; };
+  const subLabel = mesSel ? `${nReg} títulos | a partir de ${fmtMesLabel(mesMin)}` : `${nReg} títulos | ${fmtMesLabel(mesMin)}–${fmtMesLabel(mesMax)}`;
 
   document.getElementById('rec-kpis').innerHTML = `
-    <div class="kpi green"><div class="kpi-lbl">Total a Receber</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${nReg} títulos | ${fmtMesLabel(mesMin)}–${fmtMesLabel(mesMax)}</div></div>
+    <div class="kpi green"><div class="kpi-lbl">Total a Receber</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalGeral)}</div><div class="kpi-sub">${subLabel}</div></div>
     <div class="kpi teal"><div class="kpi-lbl">Recebe em ≤ 30 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v30)}</div><div class="kpi-sub">até ${d30.toLocaleDateString('pt-BR')}</div></div>
     <div class="kpi blue"><div class="kpi-lbl">Recebe em 31–60 dias</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(v60)}</div><div class="kpi-sub">31 a 60 dias</div></div>
     <div class="kpi purple"><div class="kpi-lbl">Prazo Médio Recebimento</div><div class="kpi-val">${pmrSimples!=null?pmrSimples+' dias':'—'}</div><div class="kpi-sub">emissão → vencimento</div></div>
     <div class="kpi navy"><div class="kpi-lbl">Maior Produto</div><div class="kpi-val" style="font-size:1.1rem">${topProd?topProd[0]:'—'}</div><div class="kpi-sub">${topProd?fmtK(topProd[1]):''}</div></div>
-    <div class="kpi green"><div class="kpi-lbl">Filtro Atual</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos selecionados</div></div>
+    <div class="kpi green"><div class="kpi-lbl">Mês Selecionado</div><div class="kpi-val" style="font-size:1.3rem">${fmtK(totalFilt)}</div><div class="kpi-sub">${filtered.length} títulos em ${fmtMesLabel(mesSel)||'todos os meses'}</div></div>
   `;
 
   const allMeses = [...new Set(gAReceber.map(r=>r.mesVenc))].sort();
