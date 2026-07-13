@@ -5,7 +5,7 @@
 const {PdfReader} = require('./node_modules/pdfreader');
 
 const DATE_RE  = /^\d{2}\/\d{2}\/\d{4}$/;
-const CODE_RE  = /^0{1,2}\d{4,5}$/;
+const CODE_RE  = /^0{1,2}\d{4}$/;   // fornecedor/cliente: sempre 4 dígitos após zeros
 const VALUE_RE = /^[\d.]+,\d{2}$/;
 
 // rowParserFn(texts: string[]) => array de registros [doc, emis, venc, cod, nome, hist, valor, ...extra]
@@ -48,7 +48,20 @@ function parsePDF(pdfPath, rowParserFn) {
   });
 }
 
-// Parser padrão (usado por gerar_apagar.js): [doc, emis, venc, cod, nome, hist, valor]
+// Extrai nomes do PDF: formato da coluna Fornecedor/Cliente é "CÓDIGO - NOME"
+// Os tokens após cada código (até o próximo código) formam o nome.
+function extractPdfNames(texts, n) {
+  const codePositions = [];
+  texts.forEach((t, i) => { if (CODE_RE.test(t)) codePositions.push(i); });
+  return codePositions.slice(0, n).map((codePos, idx) => {
+    const nextBoundary = codePositions[idx + 1] !== undefined ? codePositions[idx + 1] : texts.length;
+    return texts.slice(codePos + 1, nextBoundary)
+      .filter(t => t !== '-' && !DATE_RE.test(t) && !VALUE_RE.test(t) && !CODE_RE.test(t) && t.trim().length > 0)
+      .join(' ').trim();
+  });
+}
+
+// Parser padrão (usado por gerar_apagar.js / gerar_areceber.js): [doc, emis, venc, cod, nome, hist, valor]
 function parseRow(texts) {
   const dates  = texts.filter(t => DATE_RE.test(t));
   const codes  = texts.filter(t => CODE_RE.test(t));
@@ -67,6 +80,8 @@ function parseRow(texts) {
   const emissaoDates = dates.slice(0, half);
   const vencDates    = dates.slice(half);
 
+  const pdfNames = extractPdfNames(texts, n);
+
   const records = [];
   for (let i = 0; i < n; i++) {
     if (!vencDates[i] || !codes[i] || !values[i]) continue;
@@ -75,12 +90,12 @@ function parseRow(texts) {
       emissaoDates[i]  || '',
       vencDates[i],
       parseInt(codes[i]),
-      '',   // nome preenchido depois pelo DePara
-      '',   // historico não extraído
+      pdfNames[i] || '',  // nome extraído do PDF; DePara sobrescreve se disponível
+      '',
       parseFloat(String(values[i]).replace(/\./g,'').replace(',','.'))
     ]);
   }
   return records;
 }
 
-module.exports = { parsePDF, parseRow, DATE_RE, CODE_RE, VALUE_RE };
+module.exports = { parsePDF, parseRow, extractPdfNames, DATE_RE, CODE_RE, VALUE_RE };

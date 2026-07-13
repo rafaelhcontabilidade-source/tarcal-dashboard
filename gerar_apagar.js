@@ -80,6 +80,8 @@ const DEPARA = [
   [3956, 'CASA DOS POSTOS COMERCIO E SERVICO',     'Manutenção / Peças'],
   [3390, 'CARVALHO COM DE TINTAS LTDA ME',         'Outros Operacionais'],
   [3492, 'JVC DISTR EIRELI EPP',                   'Outros Operacionais'],
+  [2797, 'TARCAL TRANSPORTES E MATERIAL DE',       'Outros Operacionais'],
+  [3325, 'BANCO SICOOB CREDIGOIAS',                'Empréstimos / Financiamentos'],
 ];
 
 const DEPARA_MAP = {};
@@ -632,7 +634,7 @@ async function main() {
   // Preenche nome via DePara (ou fallback)
   const DEPARA_NOME = {};
   DEPARA.forEach(([cod, forn]) => { DEPARA_NOME[cod] = forn; });
-  DADOS.forEach(r => { r[4] = DEPARA_NOME[r[3]] || ('FORNECEDOR ' + r[3]); });
+  DADOS.forEach(r => { r[4] = DEPARA_NOME[r[3]] || r[4] || ('FORNECEDOR ' + r[3]); });
 
   // Meses dinâmicos a partir dos vencimentos reais
   const mesesSet = new Set(DADOS.map(r => mesVenc(r[2])));

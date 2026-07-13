@@ -111,7 +111,7 @@ async function main() {
   console.log(`✅ ${DADOS.length} registros únicos de ${pdfFiles.length} arquivo(s) (${allRecords.length - DADOS.length} duplicatas removidas)`);
 
   // Preenche nome via Clientes (ou fallback)
-  DADOS.forEach(r => { r[4] = CLIENTES_MAP[r[3]] || ('CLIENTE ' + r[3]); });
+  DADOS.forEach(r => { r[4] = CLIENTES_MAP[r[3]] || r[4] || ('CLIENTE ' + r[3]); });
 
   // Meses dinâmicos a partir dos vencimentos reais
   const mesesSet = new Set(DADOS.map(r => mesVenc(r[2])));

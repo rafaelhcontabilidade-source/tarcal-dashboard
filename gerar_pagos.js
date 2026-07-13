@@ -3,7 +3,7 @@
 // Lê todos os PDFs da pasta pdfs/pagos/
 
 const ExcelJS = require('./node_modules/exceljs');
-const { parsePDF, DATE_RE, CODE_RE, VALUE_RE } = require('./pdf_parser_comum');
+const { parsePDF, extractPdfNames, DATE_RE, CODE_RE, VALUE_RE } = require('./pdf_parser_comum');
 
 // Parser específico para "Relatório de Contas Pagas" do Gdoor
 // Colunas: Documento | Emissão | Vencimento | Pagamento | Fornecedor | Portador
@@ -31,32 +31,20 @@ function parseRowPagos(texts) {
   // valores: últimos n = Valor Pago
   const valorPagoStart = values.length - n;
 
-  // Tenta extrair nome do fornecedor do PDF: tokens entre a última data e o primeiro código
-  let lastDateIdx = -1;
-  texts.forEach((t, i) => { if (DATE_RE.test(t)) lastDateIdx = i; });
-  const firstCodeIdx = texts.findIndex(t => CODE_RE.test(t));
-  const midTokens = texts
-    .slice(lastDateIdx + 1, firstCodeIdx >= 0 ? firstCodeIdx : texts.length)
-    .filter(t => !VALUE_RE.test(t) && t.trim().length > 1);
-  // midTokens contém: [nomeForns..., portadores...]. Pega os primeiros (antes dos portadores).
-  // Heurística: portador é curto (banco/espécie); nome de empresa tende a ser maior.
-  // Divide midTokens em 2*n partes e pega a primeira metade como nome.
-  const halfLen = Math.ceil(midTokens.length / 2);
-  const nameTokensAll = midTokens.slice(0, halfLen);
-  const chunkSize = Math.max(1, Math.ceil(nameTokensAll.length / n));
+  // Extrai nomes do PDF: formato "CÓDIGO - NOME FORNECEDOR" → nome vem após o código
+  const pdfNames = extractPdfNames(texts, n);
 
   const records = [];
   for (let i = 0; i < n; i++) {
     const pagDate   = pagDates[i];
     const valorPago = values[valorPagoStart + i];
     if (!pagDate || !codes[i] || !valorPago) continue;
-    const pdfName = nameTokensAll.slice(i * chunkSize, (i + 1) * chunkSize).join(' ');
     records.push([
       docCandidates[i] || '',
       emissaoDates[i]  || '',
       pagDate,
       parseInt(codes[i]),
-      pdfName,   // nome extraído do PDF (fallback se não estiver em DEPARA_NOME)
+      pdfNames[i] || '',   // nome extraído do PDF
       '',
       parseFloat(String(valorPago).replace(/\./g,'').replace(',','.'))
     ]);
@@ -140,6 +128,8 @@ const DEPARA = [
   [3390, 'CARVALHO COM DE TINTAS LTDA ME',         'Outros Operacionais'],
   [3492, 'JVC DISTR EIRELI EPP',                   'Outros Operacionais'],
   [3398, 'BATERIAS PERIM LTDA',                    'Manutenção / Peças'],
+  [2797, 'TARCAL TRANSPORTES E MATERIAL DE',       'Outros Operacionais'],
+  [3325, 'BANCO SICOOB CREDIGOIAS',                'Empréstimos / Financiamentos'],
 ];
 
 const DEPARA_MAP  = {};
