@@ -1920,11 +1920,10 @@ async function processBuffer(buffer){
     const res=parseBalancete(wb.Sheets[balSheet]);
     gAM=res.am;
     const allPeriods=Object.values(res.periods).sort();
-    const revCodes=['4.1.1.01','4.1.1.02','4.1.1'];
-    const revCode=revCodes.find(c=>gAM[c]);
+    // Inclui período se qualquer conta analítica (tipo A) tiver valor não-zero
+    // Isso evita que meses sem receita (mas com movimento) sejam excluídos do filtro
     gPeriods=allPeriods.filter(p=>{
-      if(!revCode)return true;
-      return Math.abs(gAM[revCode]?.data[p]||0)>10;
+      return Object.values(gAM).some(e=>e.tipo==='A'&&Math.abs(e.data[p]||0)>0.01);
     });
     if(!gPeriods.length)gPeriods=allPeriods;
     if(vendSheet&&wb.Sheets[vendSheet]){
