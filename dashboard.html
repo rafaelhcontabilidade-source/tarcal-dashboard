@@ -836,7 +836,6 @@ function bp(period){
   const pc  = gl('2.1');
   const pnc = gl('2.2');
   const pl  = gl('2.3');
-  const passivo = gl('2');  // total 2.x — espelha Ativo
 
   // Sub-contas do PC para detalhe
   const empCP    = gl('2.1.1');
@@ -850,8 +849,13 @@ function bp(period){
   const capSoc  = gl('2.3.1');
   const lucAcum = gl('2.3.3');
 
+  // Resultado do período ainda não encerrado (contas 3/4/5 abertas no balancete).
+  // Equação: Ativo = Passivo+PL + Resultado → passivo total = ativo (equilibrado)
+  const resultYTD = -(acc('3',period) + acc('4',period) + acc('5',period));
+  const passivo = gl('2') + resultYTD;  // igual ao ativo quando balancete fecha
+
   return{disponivel,clientes,outCred,estoque,despAnt,ac,rlp,invest,imob,intang,anc,ativo,
-    empCP,fornec,obTrib,obTrab,outObrig,pc,empLP,pnc,capSoc,lucAcum,pl,passivo};
+    empCP,fornec,obTrib,obTrab,outObrig,pc,empLP,pnc,capSoc,lucAcum,pl,resultYTD,passivo};
 }
 
 // ============================================================
@@ -1357,6 +1361,7 @@ function renderBalanco(){
     {cls:'sub',cells:['PATRIMÔNIO LÍQUIDO',fV(b.pl),fV(bPP?.pl),fV(bPY?.pl),varHtml(b.pl,bPP?.pl),varHtml(b.pl,bPY?.pl)]},
     bpRow('Capital Social',b.capSoc,bPP?.capSoc,bPY?.capSoc,'ind1'),
     bpRow('Lucros/Prej. Acumulados',b.lucAcum,bPP?.lucAcum,bPY?.lucAcum,'ind1'),
+    bpRow('Resultado do Exercício',b.resultYTD,bPP?.resultYTD,bPY?.resultYTD,'ind1'),
     {cls:'ttl',cells:['TOTAL PASSIVO + PL',fV(b.passivo),fV(bPP?.passivo),fV(bPY?.passivo),varHtml(b.passivo,bPP?.passivo),varHtml(b.passivo,bPY?.passivo)]},
   ];
   document.getElementById('tbl-ativo').innerHTML=buildTable(colsBP,aRows);
@@ -2337,6 +2342,8 @@ function renderRecebido() {
 
   const filtered = filteredAReceber();
   const mesSel = document.getElementById('rec-mes-sel')?.value || '';
+  // curPeriod é o mês do topbar (ex: "2026-07"); base = a partir desse mês
+  const baseFrom = curPeriod || mesSel;
   const today = new Date();
   const d30 = new Date(today); d30.setDate(d30.getDate()+30);
   const d60 = new Date(today); d60.setDate(d60.getDate()+60);
@@ -2347,8 +2354,8 @@ function renderRecebido() {
     return new Date(+y, +m-1, +d);
   }
 
-  // Base para os cards: a partir do mês selecionado (ou tudo se nenhum mês escolhido)
-  const base = mesSel ? gAReceber.filter(r => r.mesVenc >= mesSel) : gAReceber;
+  // Base para os cards: a partir do mês do topbar (ou tudo se sem filtro)
+  const base = baseFrom ? gAReceber.filter(r => r.mesVenc >= baseFrom) : gAReceber;
 
   const totalGeral = base.reduce((a,r)=>a+r.valor,0);
   const v30 = base.filter(r=>{ const dt=parseVencDate(r.venc); return dt&&dt>=today&&dt<=d30; }).reduce((a,r)=>a+r.valor,0);
