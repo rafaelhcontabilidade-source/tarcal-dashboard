@@ -776,7 +776,8 @@ function dre(period){
   const dGer=m('3.2.2.04');
   const da=m('3.2.2.04.0010'); // D&A sub-account
   const dGerExDA=dGer-da;
-  const opex=dPess+dImp+dGerExDA;
+  const dOutrasOp=m('3.2.2.06');
+  const opex=dPess+dImp+dGerExDA+dOutrasOp;
   const ebtda=lucroBruto-opex;
   const margEbitda=recLiq?ebtda/recLiq:0;
   const ebit=ebtda-da;
@@ -799,7 +800,7 @@ function dre(period){
   const margLiq=recLiq?ll/recLiq:0;
 
   return{recBruta,rb1,rb2,devol,impVnd,deduc,recLiq,cdir,cindir,cmv,custoTotal,
-    lucroBruto,margBruta,dPess,dImp,dGer,da,dGerExDA,opex,ebitda:ebtda,margEbitda,
+    lucroBruto,margBruta,dPess,dImp,dGer,da,dGerExDA,dOutrasOp,opex,ebitda:ebtda,margEbitda,
     ebit,margEbit,recFin,despFin,resFin,outrasRecOp,recNaoOp,despNaoOp,resNaoOp,
     lair,irCsll,ll,margLiq};
 }
@@ -1222,7 +1223,7 @@ function renderDRE(){
   const dYTD={recBruta:ytdSum('recBruta'),recLiq:ytdSum('recLiq'),deduc:ytdSum('deduc'),custoTotal:ytdSum('custoTotal'),
     lucroBruto:ytdSum('lucroBruto'),opex:ytdSum('opex'),ebitda:ytdSum('ebitda'),da:ytdSum('da'),
     ebit:ytdSum('ebit'),resFin:ytdSum('resFin'),resNaoOp:ytdSum('resNaoOp'),lair:ytdSum('lair'),irCsll:ytdSum('irCsll'),ll:ytdSum('ll'),
-    dPess:ytdSum('dPess'),dImp:ytdSum('dImp'),dGer:ytdSum('dGer'),dGerExDA:ytdSum('dGerExDA'),
+    dPess:ytdSum('dPess'),dImp:ytdSum('dImp'),dGer:ytdSum('dGer'),dGerExDA:ytdSum('dGerExDA'),dOutrasOp:ytdSum('dOutrasOp'),
     recFin:ytdSum('recFin'),despFin:ytdSum('despFin')};
   dYTD.margBruta=dYTD.recLiq?dYTD.lucroBruto/dYTD.recLiq:0;
   dYTD.margEbitda=dYTD.recLiq?dYTD.ebitda/dYTD.recLiq:0;
@@ -1253,6 +1254,7 @@ function renderDRE(){
     {cls:'ind1',cells:['(-) Despesas c/ Pessoal',fVD(-d.dPess,d),fVD(dPP?-dPP.dPess:null,dPP),fVD(dPY?-dPY.dPess:null,dPY),'','',fYTD(-ytdSum('dPess'))]},
     {cls:'ind1',cells:['(-) Impostos e Taxas',fVD(-d.dImp,d),fVD(dPP?-dPP.dImp:null,dPP),fVD(dPY?-dPY.dImp:null,dPY),'','',fYTD(-ytdSum('dImp'))]},
     {cls:'ind1',cells:['(-) Despesas Gerais (ex.D&A)',fVD(-d.dGerExDA,d),fVD(dPP?-dPP.dGerExDA:null,dPP),fVD(dPY?-dPY.dGerExDA:null,dPY),'','',fYTD(-ytdSum('dGerExDA'))]},
+    {cls:'ind1',cells:['(-) Outras Desp. Operacionais',fVD(-d.dOutrasOp,d),fVD(dPP?-dPP.dOutrasOp:null,dPP),fVD(dPY?-dPY.dOutrasOp:null,dPY),'','',fYTD(-ytdSum('dOutrasOp'))]},
     {cls:'ttl',cells:['EBITDA',fVD(d.ebitda,d),fVD(dPP?.ebitda,dPP),fVD(dPY?.ebitda,dPY),varHtml(d.ebitda,dPP?.ebitda),varHtml(d.ebitda,dPY?.ebitda),fYTD(dYTD.ebitda)]},
     {cls:'ind2',cells:['Margem EBITDA',fmtP(d.margEbitda),fmtP(dPP?.margEbitda),fmtP(dPY?.margEbitda),'','',fmtP(dYTD.margEbitda)]},
     {cls:'ind1',cells:['(-) Depreciação e Amort.',fVD(-d.da,d),fVD(dPP?-dPP.da:null,dPP),fVD(dPY?-dPY.da:null,dPY),'','',fYTD(-ytdSum('da'))]},
