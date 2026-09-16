@@ -370,6 +370,10 @@ table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
           <div class="card"><div class="ch"><span class="ct">Geração de Caixa — Componentes</span></div><div class="chart-wrap h280"><canvas id="c-fc-comp"></canvas></div></div>
         </div>
         <div class="card">
+          <div class="ch"><span class="ct">Faturamento × Lucro Líquido × Geração de Caixa (12 meses)</span></div>
+          <div class="chart-wrap h300"><canvas id="c-fc-combo"></canvas></div>
+        </div>
+        <div class="card">
           <div class="ch"><span class="ct">Demonstração do Fluxo de Caixa (Método Indireto)</span></div>
           <div class="cb"><div class="tbl-wrap" id="tbl-fc"></div></div>
         </div>
@@ -1407,6 +1411,18 @@ function renderFluxo(){
     barDataset('Financiamentos',per12.map(x=>cf(x)?.fcFin||0),'rgba(37,99,235,.7)'),
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
     scales:{y:{ticks:{callback:v=>fmtM(v)},grid:{color:'#f1f5f9'}}}}});
+
+  // Combo chart: Faturamento x LL x FC Operacional
+  mkChart('c-fc-combo',{type:'bar',data:{labels:labs,datasets:[
+    {...barDataset('Faturamento',per12.map(x=>dre(x)?.recLiq||0),'rgba(37,99,235,.65)'),order:1,yAxisID:'yR'},
+    {type:'line',label:'Lucro Líquido',...lineDataset('Lucro Líquido',per12.map(x=>dre(x)?.ll||0),'#059669'),order:0,yAxisID:'yL',tension:.35,pointRadius:4,pointHoverRadius:6},
+    {type:'line',label:'FC Operacional',...lineDataset('FC Operacional',per12.map(x=>cf(x)?.fcOp||0),'#d97706'),order:0,yAxisID:'yL',tension:.35,pointRadius:4,pointHoverRadius:6,borderDash:[5,3]},
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+    scales:{
+      yR:{position:'left',ticks:{callback:v=>fmtM(v)},grid:{color:'rgba(0,0,0,.04)'},title:{display:true,text:'Faturamento'}},
+      yL:{position:'right',ticks:{callback:v=>fmtM(v)},grid:{drawOnChartArea:false},title:{display:true,text:'LL / FC Op.'}},
+    }}});
 
   // FC Table — Mês Atual | Acum. Ano | Mês Ano Ant. | Acum. Ano Ant.
   const cy=p.split('-')[0];
