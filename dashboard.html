@@ -1444,9 +1444,9 @@ function renderFluxo(){
     r('(-) Distribuição de Lucros','distLucros','ind1'),
     {cls:'ttl',cells:['TOTAL FC FINANCIAMENTOS',fV(c.fcFin),fV(cYTD('fcFin')),fV(cPY('fcFin')),fV(cPYYTD('fcFin'))]},
     {cls:'sec',cells:['RESULTADO','','','','']},
-    {cls:'sub',cells:['Saldo Inicial de Caixa',fV(c.saldoIni),'—',fV(cPY('saldoIni')),'—']},
+    {cls:'sub',cells:['Saldo Inicial de Caixa',fV(c.saldoIni),fV(cf(ytdFcPs[0])?.saldoIni),fV(cPY('saldoIni')),fV(cf(ytdFcPY[0])?.saldoIni)]},
     {cls:'sub',cells:['Variação Líquida de Caixa',fV(c.varCaixa),fV(cYTD('varCaixa')),fV(cPY('varCaixa')),fV(cPYYTD('varCaixa'))]},
-    {cls:'ttl',cells:['SALDO FINAL DE CAIXA',fV(c.saldoFim),'—',fV(cPY('saldoFim')),'—']},
+    {cls:'ttl',cells:['SALDO FINAL DE CAIXA',fV(c.saldoFim),fV(c.saldoFim),fV(cPY('saldoFim')),fV(cf(ppy)?.saldoFim)]},
   ];
   document.getElementById('tbl-fc').innerHTML=buildTable(fcCols,fcRows);
 }
