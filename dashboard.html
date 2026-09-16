@@ -372,6 +372,7 @@ table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
         <div class="card">
           <div class="ch"><span class="ct">Faturamento × Lucro Líquido × Geração de Caixa (12 meses)</span></div>
           <div class="chart-wrap h300"><canvas id="c-fc-combo"></canvas></div>
+          <div class="tbl-wrap" id="tbl-fc-combo" style="margin-top:.75rem"></div>
         </div>
         <div class="card">
           <div class="ch"><span class="ct">Demonstração do Fluxo de Caixa (Método Indireto)</span></div>
@@ -1423,6 +1424,21 @@ function renderFluxo(){
       yR:{position:'left',ticks:{callback:v=>fmtM(v)},grid:{color:'rgba(0,0,0,.04)'},title:{display:true,text:'Faturamento'}},
       yL:{position:'right',ticks:{callback:v=>fmtM(v)},grid:{drawOnChartArea:false},title:{display:true,text:'LL / FC Op.'}},
     }}});
+
+  // Tabela mês a mês: Faturamento | LL | % LL/RL | Var. Caixa
+  const comboRows=per12.map(x=>{
+    const dr=dre(x), cc=cf(x);
+    const rl=dr?.recLiq||0, ll=dr?.ll||0, vc=cc?.varCaixa||0;
+    const pct=rl?ll/rl:null;
+    const lbl=MONTHS_PT[parseInt(x.split('-')[1])-1]+'/'+x.split('-')[0].slice(2);
+    return {cls:'ind1',cells:[lbl,fmtFull(rl),fmtFull(ll),pct!=null?fmtP(pct):'—',fmtFull(vc)]};
+  });
+  // linha de total
+  const totRL=per12.reduce((s,x)=>s+(dre(x)?.recLiq||0),0);
+  const totLL=per12.reduce((s,x)=>s+(dre(x)?.ll||0),0);
+  const totVC=per12.reduce((s,x)=>s+(cf(x)?.varCaixa||0),0);
+  comboRows.push({cls:'ttl',cells:['TOTAL',fmtFull(totRL),fmtFull(totLL),totRL?fmtP(totLL/totRL):'—',fmtFull(totVC)]});
+  document.getElementById('tbl-fc-combo').innerHTML=buildTable(['Mês','Faturamento','Lucro Líquido','% LL / Rec. Líq.','Var. Líq. de Caixa'],comboRows);
 
   // FC Table — Mês Atual | Acum. Ano | Mês Ano Ant. | Acum. Ano Ant.
   const cy=p.split('-')[0];
