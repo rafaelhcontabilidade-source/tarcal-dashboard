@@ -1425,6 +1425,9 @@ function renderFluxo(){
       yL:{position:'right',ticks:{callback:v=>fmtM(v)},grid:{drawOnChartArea:false},title:{display:true,text:'LL / FC Op.'}},
     }}});
 
+  // FC Table — Mês Atual | Acum. Ano | Mês Ano Ant. | Acum. Ano Ant.
+  const cy=p.split('-')[0];
+
   // Tabela mês a mês: Faturamento | LL | % LL/RL | Var. Caixa (apenas ano corrente)
   const comboTblPs=periodsInYear(gPeriods,cy).filter(x=>x<=p);
   const comboRows=comboTblPs.map(x=>{
@@ -1434,15 +1437,11 @@ function renderFluxo(){
     const lbl=MONTHS_PT[parseInt(x.split('-')[1])-1]+'/'+x.split('-')[0].slice(2);
     return {cls:'ind1',cells:[lbl,fmtFull(rl),fmtFull(ll),pct!=null?fmtP(pct):'—',fmtFull(vc)]};
   });
-  // linha de total
   const totRL=comboTblPs.reduce((s,x)=>s+(dre(x)?.recLiq||0),0);
   const totLL=comboTblPs.reduce((s,x)=>s+(dre(x)?.ll||0),0);
   const totVC=comboTblPs.reduce((s,x)=>s+(cf(x)?.varCaixa||0),0);
   comboRows.push({cls:'ttl',cells:['TOTAL',fmtFull(totRL),fmtFull(totLL),totRL?fmtP(totLL/totRL):'—',fmtFull(totVC)]});
   document.getElementById('tbl-fc-combo').innerHTML=buildTable(['Mês','Faturamento','Lucro Líquido','% LL / Rec. Líq.','Var. Líq. de Caixa'],comboRows);
-
-  // FC Table — Mês Atual | Acum. Ano | Mês Ano Ant. | Acum. Ano Ant.
-  const cy=p.split('-')[0];
   const ppy=samePeriodPY(p);
   const ytdFcPs=periodsInYear(gPeriods,cy).filter(x=>x<=p);
   const ytdFcPY=ppy?periodsInYear(gPeriods,String(parseInt(cy)-1)).filter(x=>x<=ppy):[];
