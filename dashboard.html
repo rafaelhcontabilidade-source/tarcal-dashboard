@@ -1408,37 +1408,47 @@ function renderFluxo(){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
     scales:{y:{ticks:{callback:v=>fmtM(v)},grid:{color:'#f1f5f9'}}}}});
 
-  // FC Table
-  const fV=v=>fmtFull(v);
+  // FC Table — Mês Atual | Acum. Ano | Mês Ano Ant. | Acum. Ano Ant.
+  const cy=p.split('-')[0];
+  const ppy=samePeriodPY(p);
+  const ytdFcPs=periodsInYear(gPeriods,cy).filter(x=>x<=p);
+  const ytdFcPY=ppy?periodsInYear(gPeriods,String(parseInt(cy)-1)).filter(x=>x<=ppy):[];
+  const sumCF=(ps,key)=>ps.reduce((s,x)=>{const cc=cf(x);return s+(cc?cc[key]:0);},0);
+  const cYTD=k=>sumCF(ytdFcPs,k);
+  const cPY=k=>{const cc=cf(ppy);return cc?cc[k]:null;};
+  const cPYYTD=k=>sumCF(ytdFcPY,k);
+  const fV=v=>v==null?'—':fmtFull(v);
+  const fcCols=['Item','Mês Atual','Acum. Ano','Mês Ano Ant.','Acum. Ano Ant.'];
+  const r=(label,k,cls)=>({cls,cells:[label,fV(c[k]),fV(cYTD(k)),fV(cPY(k)),fV(cPYYTD(k))]});
   const fcRows=[
-    {cls:'sec',cells:['FLUXO DE CAIXA OPERACIONAL','']},
-    {cls:'ind1',cells:['Lucro Líquido',fV(c.ll)]},
-    {cls:'ind1',cells:['(+) Depreciação e Amortização',fV(c.da)]},
-    {cls:'sub',cells:['Variação no Capital de Giro','']},
-    {cls:'ind2',cells:['(-) Var. Contas a Receber',fV(c.dCli)]},
-    {cls:'ind2',cells:['(-) Var. Estoques',fV(c.dEst)]},
-    {cls:'ind2',cells:['(-) Var. Outros Ativos Circ.',fV(c.dOutAC)]},
-    {cls:'ind2',cells:['(+) Var. Fornecedores',fV(c.dForn)]},
-    {cls:'ind2',cells:['(+) Var. Obrigações Tributárias',fV(c.dObTrib)]},
-    {cls:'ind2',cells:['(+) Var. Obrigações Trabalhistas',fV(c.dObTrab)]},
-    {cls:'ind2',cells:['(+) Var. Outras Obrigações',fV(c.dOutP)]},
-    {cls:'ttl',cells:['TOTAL FC OPERACIONAL',fV(c.fcOp)]},
-    {cls:'sec',cells:['FLUXO DE CAIXA DE INVESTIMENTOS','']},
-    {cls:'ind1',cells:['(-) CAPEX (aprox.)',fV(c.capex)]},
-    {cls:'ind1',cells:['(-) Var. Investimentos',fV(c.dInvest)]},
-    {cls:'ind1',cells:['(-) Var. Realizável LP',fV(c.dAnc)]},
-    {cls:'ttl',cells:['TOTAL FC INVESTIMENTOS',fV(c.fcInv)]},
-    {cls:'sec',cells:['FLUXO DE CAIXA DE FINANCIAMENTOS','']},
-    {cls:'ind1',cells:['Var. Empréstimos CP',fV(c.dEmpCP)]},
-    {cls:'ind1',cells:['Var. Empréstimos LP',fV(c.dEmpLP)]},
-    {cls:'ind1',cells:['(-) Distribuição de Lucros',fV(c.distLucros)]},
-    {cls:'ttl',cells:['TOTAL FC FINANCIAMENTOS',fV(c.fcFin)]},
-    {cls:'sec',cells:['RESULTADO','']},
-    {cls:'sub',cells:['Saldo Inicial de Caixa',fV(c.saldoIni)]},
-    {cls:'sub',cells:['Variação Líquida de Caixa',fV(c.varCaixa)]},
-    {cls:'ttl',cells:['SALDO FINAL DE CAIXA',fV(c.saldoFim)]},
+    {cls:'sec',cells:['FLUXO DE CAIXA OPERACIONAL','','','','']},
+    r('Lucro Líquido','ll','ind1'),
+    r('(+) Depreciação e Amortização','da','ind1'),
+    {cls:'sub',cells:['Variação no Capital de Giro','','','','']},
+    r('(-) Var. Contas a Receber','dCli','ind2'),
+    r('(-) Var. Estoques','dEst','ind2'),
+    r('(-) Var. Outros Ativos Circ.','dOutAC','ind2'),
+    r('(+) Var. Fornecedores','dForn','ind2'),
+    r('(+) Var. Obrigações Tributárias','dObTrib','ind2'),
+    r('(+) Var. Obrigações Trabalhistas','dObTrab','ind2'),
+    r('(+) Var. Outras Obrigações','dOutP','ind2'),
+    {cls:'ttl',cells:['TOTAL FC OPERACIONAL',fV(c.fcOp),fV(cYTD('fcOp')),fV(cPY('fcOp')),fV(cPYYTD('fcOp'))]},
+    {cls:'sec',cells:['FLUXO DE CAIXA DE INVESTIMENTOS','','','','']},
+    r('(-) CAPEX (aprox.)','capex','ind1'),
+    r('(-) Var. Investimentos','dInvest','ind1'),
+    r('(-) Var. Realizável LP','dAnc','ind1'),
+    {cls:'ttl',cells:['TOTAL FC INVESTIMENTOS',fV(c.fcInv),fV(cYTD('fcInv')),fV(cPY('fcInv')),fV(cPYYTD('fcInv'))]},
+    {cls:'sec',cells:['FLUXO DE CAIXA DE FINANCIAMENTOS','','','','']},
+    r('Var. Empréstimos CP','dEmpCP','ind1'),
+    r('Var. Empréstimos LP','dEmpLP','ind1'),
+    r('(-) Distribuição de Lucros','distLucros','ind1'),
+    {cls:'ttl',cells:['TOTAL FC FINANCIAMENTOS',fV(c.fcFin),fV(cYTD('fcFin')),fV(cPY('fcFin')),fV(cPYYTD('fcFin'))]},
+    {cls:'sec',cells:['RESULTADO','','','','']},
+    {cls:'sub',cells:['Saldo Inicial de Caixa',fV(c.saldoIni),'—',fV(cPY('saldoIni')),'—']},
+    {cls:'sub',cells:['Variação Líquida de Caixa',fV(c.varCaixa),fV(cYTD('varCaixa')),fV(cPY('varCaixa')),fV(cPYYTD('varCaixa'))]},
+    {cls:'ttl',cells:['SALDO FINAL DE CAIXA',fV(c.saldoFim),'—',fV(cPY('saldoFim')),'—']},
   ];
-  document.getElementById('tbl-fc').innerHTML=buildTable(['Item','Valor'],fcRows);
+  document.getElementById('tbl-fc').innerHTML=buildTable(fcCols,fcRows);
 }
 
 // ============================================================
